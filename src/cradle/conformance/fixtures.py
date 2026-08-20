@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cradle.md import BondSpec, IntegratorSpec, MDManifest, NonbondedSpec, ParticleSpec, write_manifest
+from cradle.md import BondSpec, IntegratorSpec, MDManifest, NonbondedSpec, ParticleSpec
+from cradle.md import write_manifest as write_md_manifest
+from cradle.spatial import SpatialManifest, SpatialSpecies
+from cradle.spatial import write_manifest as write_spatial_manifest
 from cradle.substrate import archive, experiment, model
 from cradle.substrate.examples import toy_fba
 from cradle.substrate.examples.toggle_switch import build_annotated_document
@@ -72,5 +75,23 @@ def build_reference_md_manifest(destination_dir: str) -> str:
         report_interval=200,
     )
     path = str(Path(destination_dir) / "md_manifest.json")
-    write_manifest(manifest, path)
+    write_md_manifest(manifest, path)
+    return path
+
+
+#: A small point-source diffusion fixture — the reference for any
+#: SimulationAdapter declaring `input_mode = "spatial_manifest"`. Sized
+#: (source_radius well above the pathological-slowness threshold found
+#: while building the E-Cell4 adapter) to place and run quickly.
+def build_reference_spatial_manifest(destination_dir: str) -> str:
+    manifest = SpatialManifest(
+        domain_edge_lengths=(6.0, 2.0, 2.0),
+        source_center=(3.0, 1.0, 1.0),
+        source_radius=0.5,
+        species=[SpatialSpecies(name="M", diffusion_coefficient=1.0, radius=0.01, initial_count=50)],
+        step_duration=0.05,
+        n_steps=3,
+    )
+    path = str(Path(destination_dir) / "spatial_manifest.json")
+    write_spatial_manifest(manifest, path)
     return path

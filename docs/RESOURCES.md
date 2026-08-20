@@ -36,11 +36,11 @@ before any commercial deployment decision — these pages change.
 
 | Tool | Embeddable | Model class | License | Maintenance (Aug 2026) | Link |
 |---|---|---|---|---|---|
-| CompuCell3D | Yes, mature Python API | Cellular Potts + PDE fields | MIT | Active, v4.9.0 | github.com/CompuCell3D/CompuCell3D |
-| PhysiCell | C++ lib, no native Python solver API | Agent-based 3D multicellular | BSD-3 | Active (dev branch) | github.com/MathCancer/PhysiCell |
-| Smoldyn | Yes, pybind11 | Particle-based spatial stochastic | GPL-3.0 / LGPL-3.0 | Active | github.com/ssandrews/Smoldyn |
-| E-Cell4 | Yes, pybind11 | ODE→SSA→particle (Spatiocyte/EGFRD), one API | GPL-3.0 | Active | github.com/ecell/ecell4 |
-| MCell | Yes, libmcell pybind11 | Particle-based spatial stochastic + BNGL | MIT | Slowing (last commit ~May 2025) | github.com/mcellteam/mcell |
+| CompuCell3D | **No PyPI/pip package at all (confirmed Aug 2026) — conda-only, blocked here** | Cellular Potts + PDE fields | MIT | Active, v4.9.0 | github.com/CompuCell3D/CompuCell3D |
+| PhysiCell | **No PyPI/pip package at all (confirmed) — C++/Makefile only, blocked here** | Agent-based 3D multicellular | BSD-3 | Active (dev branch) | github.com/MathCancer/PhysiCell |
+| Smoldyn | Installs cleanly; basic API works, but **retrieving positions via `listmols`/output-table segfaults, reproducibly, confirmed at minimal scale — blocked here** | Particle-based spatial stochastic | GPL-3.0 / LGPL-3.0 | Active | github.com/ssandrews/Smoldyn |
+| E-Cell4 | **Implemented** (`plugins/ecell4_spatial/`) — `spatiocyte` module's object-level API (`list_particles_exact`) is clean and stable; one placement-performance gotcha found and worked around (rejection-sampling `Sphere` radius must be sized well above the target molecule count, or placement is pathologically slow) | ODE→SSA→particle (Spatiocyte/EGFRD), one API | GPL-3.0 — isolated as a subprocess (`ecell4_spatial.worker`), per NOTICE.md | Active | github.com/ecell/ecell4 |
+| MCell | Not attempted — E-Cell4 already satisfied the exit criterion | Particle-based spatial stochastic + BNGL | MIT | Slowing (last commit ~May 2025) | github.com/mcellteam/mcell |
 
 **BioSimulators registry coverage:** COPASI, VCell, Tellurium, COBRApy, BioNetGen, PySB,
 MCell, Smoldyn, E-Cell4 are all live adapters today — swap between them by pointing the

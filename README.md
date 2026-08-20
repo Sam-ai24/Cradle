@@ -110,8 +110,18 @@ actually checking), and real Tabula Muris Senis aging data (which honestly does 
 the textbook senescence-marker trend in this tissue slice — reported as found, not massaged).
 Environmental stress (ASTRA) stays blocked: no discoverable REST API.
 
+**Phase 9 (spatial/multicellular expansion) — done, with a different engine than planned.**
+CompuCell3D (conda-only) and PhysiCell (C++-compile-only) both have no pip/PyPI path at
+all; Smoldyn installs cleanly but has a confirmed, reproducible **segmentation fault**
+retrieving molecule positions in this build — a real native crash, isolated down to the
+smallest possible case before being ruled out. E-Cell4's `spatiocyte` module works cleanly
+instead (`plugins/ecell4_spatial/`, subprocess-isolated like `cobrapy_fba` since it's
+GPL-3.0) and is verified against the *exact* analytical solution of the diffusion equation
+— particle-position spread growing as `sqrt(2·D·t)` from a point source, checked at 4
+independent time points, not just a qualitative pattern.
+
 See `docs/ROADMAP.md` for what's next (finishing Phase 5's AI layer, Phase 7's docking
-contract, or Phase 9's spatial expansion).
+contract, or Phase 10's visualization layer).
 
 ## Getting started (local dev)
 

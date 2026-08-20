@@ -158,6 +158,25 @@ def _check_qual_sbml_simulation_adapter(instance: Any) -> None:
         raise ConformanceError(f"{instance.name} run() returned no species trajectories")
 
 
+def _check_spatial_manifest_simulation_adapter(instance: Any) -> None:
+    """Conformance check for particle-based spatial-stochastic adapters
+    (`input_mode = "spatial_manifest"`) — neither spatial geometry nor
+    agent rules fit SBML/SED-ML, so this consumes Cradle's own
+    `cradle.spatial.SpatialManifest` (Architecture, Layer 4/9).
+    """
+    from cradle.conformance.fixtures import build_reference_spatial_manifest
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        manifest_path = build_reference_spatial_manifest(tmp_dir)
+        result = instance.run({"manifest_path": manifest_path}, {})
+
+    for key in ("t", "trajectories", "engine"):
+        if key not in result:
+            raise ConformanceError(f"{instance.name} run() result missing '{key}'")
+    if not result["trajectories"]:
+        raise ConformanceError(f"{instance.name} run() returned no diagnostic trajectories")
+
+
 def check_simulation_adapter(instance: Any) -> None:
     if not isinstance(instance, SimulationAdapter):
         raise ConformanceError(f"{instance!r} does not implement SimulationAdapter")
@@ -171,6 +190,8 @@ def check_simulation_adapter(instance: Any) -> None:
         _check_md_manifest_simulation_adapter(instance)
     elif input_mode == "qual_sbml":
         _check_qual_sbml_simulation_adapter(instance)
+    elif input_mode == "spatial_manifest":
+        _check_spatial_manifest_simulation_adapter(instance)
     else:
         _check_toy_simulation_adapter(instance)
 

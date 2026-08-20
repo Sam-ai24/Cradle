@@ -405,7 +405,7 @@ app with no discoverable REST endpoint found in a reasonable search (same catego
 as RegulonDB in Phase 7) — this remains the thinnest-covered intervention category, exactly
 as flagged when this phase was first planned.
 
-## Phase 9 — Spatial/multicellular expansion
+## Phase 9 — Spatial/multicellular expansion — ✅ done, with a different engine than planned (2026-08-20)
 
 - Add the custom "spatial experiment" archive format (Phase 0-defined pattern extended).
 - Wrap **CompuCell3D** as the first spatial adapter (MIT, headless Python API).
@@ -416,6 +416,40 @@ as flagged when this phase was first planned.
 **Exit criterion:** a spatial version of a Phase 4-class model (or a new small one) runs on
 CompuCell3D and produces a result checkable against a known qualitative behavior
 (e.g. a morphogen gradient, a growth pattern).
+
+**Met — with E-Cell4, not CompuCell3D or Smoldyn, after all three of the roadmap's other
+named engines turned out genuinely blocked, confirmed one at a time rather than assumed:**
+
+- **CompuCell3D**: no PyPI/pip package at all (confirmed against PyPI directly) — it's
+  conda-only, and no conda is available in this environment.
+- **PhysiCell**: no PyPI/pip package either — it's a C++ codebase built via its own
+  Makefile, with no Python packaging path.
+- **Smoldyn** (the roadmap's own "preferred" choice): installs cleanly, and basic
+  simulation (`run()` + `getMoleculeCount()`) works — but retrieving molecule *positions*
+  via its standard `listmols`/output-table mechanism (`addOutputData` + `addCommand` +
+  `getOutputData`) causes a **reproducible segmentation fault** in this build, isolated
+  down to the smallest possible case (10 molecules, 10 timesteps, one output command) to
+  confirm it wasn't a scale issue. A real native crash is a more serious problem than a
+  clean install failure, so this was ruled out rather than worked around.
+- **E-Cell4**: installs cleanly, and its `spatiocyte` (particle-based spatial-stochastic)
+  module has a genuine object-level Python API (`list_particles_exact()` returns real
+  `Particle` objects with `.position()`) that never touches the crash-prone
+  command/output-table pattern at all. One real performance gotcha found and resolved:
+  `add_molecules(species, count, Sphere(center, radius))` does rejection-sampling to find
+  empty voxels, which is pathologically slow if `radius` is too small relative to `count`
+  and the world's voxel size (confirmed: radius 0.3 never completed placing 300 molecules
+  within 40+ seconds; radius 0.5 placed 500 molecules near-instantly) — documented directly
+  in `ecell4_spatial/worker.py`, not left as a silent trap.
+
+`cradle.spatial` defines the manifest (species with diffusion coefficient/radius, a point
+source, domain size, step count) — the same "no BioSimulators-equivalent contract exists"
+pattern as the MD tier (Phase 7). `plugins/ecell4_spatial/` runs E-Cell4 subprocess-isolated
+(GPL-3.0, same pattern as `cobrapy_fba`). Verified against **exact analytical physics, not
+just a qualitative pattern**: for free diffusion from a point source, particle-position
+standard deviation along any axis must grow as `sqrt(2*D*t)` — the closed-form solution of
+the diffusion equation. Checked at 4 independent time points in one run, matching the
+prediction throughout (`tests/test_ecell4_spatial_adapter.py`) — a stronger result than the
+roadmap's own "checkable against a known qualitative behavior" bar asked for.
 
 ## Phase 10 — Visualization & interactive exploration
 
