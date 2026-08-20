@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-pdb-data"
+version = "0.0.0"
+description = "RCSB PDB data connector for Cradle (experimental structure, CC0)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core"]
+
+[project.entry-points."cradle.data_connectors"]
+pdb = "pdb_data.connector:RcsbPdbConnector"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -21,9 +21,19 @@ class MissingAnnotationError(AssertionError):
     unsourced numbers)."""
 
 
-def curie_to_uri(curie: str) -> str:
+def parse_curie(curie: str) -> tuple[str, str]:
+    """Split `namespace:localId` into its two parts, validating the same
+    syntax rule `curie_to_uri` uses. Shared with the Layer 6 knowledge
+    layer (`cradle.knowledge`) so both layers agree on one CURIE grammar.
+    """
     if not _CURIE_RE.match(curie):
         raise InvalidCurieError(f"'{curie}' is not a valid CURIE (expected namespace:localId)")
+    namespace, local_id = curie.split(":", 1)
+    return namespace, local_id
+
+
+def curie_to_uri(curie: str) -> str:
+    parse_curie(curie)
     return f"https://identifiers.org/{curie}"
 
 

@@ -46,8 +46,17 @@ synthetic toy network). `cradle-conformance` now dispatches its check per adapte
 declared `input_mode`, so real archive-based adapters get checked against a real reference
 archive while the Phase 0 toy plugin keeps passing unmodified.
 
-See `docs/ROADMAP.md` for what's next (Phase 3: the knowledge/data layer — UniProt, PDB,
-Reactome, BioModels, BioGRID, STRING, CZ CELLxGENE Census — as CURIE-addressed connectors).
+**Phase 3 (knowledge/data layer) — done.** Seven `DataConnector` plugins hit real, live
+APIs (UniProt, RCSB PDB, AlphaFold DB, Reactome, BioModels, STRING, CZ CELLxGENE Discover),
+plus KEGG as the flagship license-gated example (off by default). BioGRID is implemented
+but needs a registered API key to actually run — reported as a distinct "not configured"
+skip, not a failure. `cradle.knowledge.router.resolve_all()` fans one query out across
+every connector that accepts it; verified live against TP53 (`uniprot:P04637`), which
+resolves across 5 real sources at once, each CURIE-linked and source-attributed.
+
+See `docs/ROADMAP.md` for what's next (Phase 4: the first fully validated model — likely
+*E. coli* core carbon metabolism — built and curated end to end through everything Phases
+1-3 established).
 
 ## Getting started (local dev)
 
@@ -56,8 +65,15 @@ python -m venv .venv
 source .venv/Scripts/activate   # Windows Git Bash; use .venv\Scripts\activate.bat on cmd
 pip install -e ".[dev,demo]" \
   -e plugins/hello_data -e plugins/hello_sim -e plugins/hello_ai \
-  -e plugins/tellurium_sim -e plugins/copasi_sim -e plugins/cobrapy_fba
+  -e plugins/tellurium_sim -e plugins/copasi_sim -e plugins/cobrapy_fba \
+  -e plugins/uniprot_data -e plugins/pdb_data -e plugins/alphafold_data \
+  -e plugins/reactome_data -e plugins/biomodels_data -e plugins/string_data \
+  -e plugins/biogrid_data -e plugins/cellxgene_data -e plugins/kegg_data
 
-cradle-conformance   # discovers + verifies every registered plugin
-pytest -q            # same checks, plus the Phase 1/2 substrate + adapter tests
+cradle-conformance   # discovers + verifies every registered plugin (live network calls)
+pytest -q            # same checks, plus the Phase 1/2/3 substrate + adapter + knowledge tests
 ```
+
+Optional, for full coverage: `CRADLE_BIOGRID_API_KEY=<your key>` (free registration at
+webservice.thebiogrid.org) and `CRADLE_LICENSE_ACK_KEGG=1` (only after reading NOTICE.md's
+KEGG terms — it's off by default for a reason).

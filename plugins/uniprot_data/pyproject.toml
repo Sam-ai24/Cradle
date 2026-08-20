@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-uniprot-data"
+version = "0.0.0"
+description = "UniProt data connector for Cradle (protein sequence/function, CC BY 4.0)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core"]
+
+[project.entry-points."cradle.data_connectors"]
+uniprot = "uniprot_data.connector:UniProtConnector"
+
+[tool.setuptools.packages.find]
+where = ["src"]

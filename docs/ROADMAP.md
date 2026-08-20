@@ -92,7 +92,7 @@ here: `check_simulation_adapter` now dispatches on each adapter's declared `inpu
 passing unmodified while real adapters get checked against a real reference archive
 (`cradle/conformance/fixtures.py`) — additive, not breaking.
 
-## Phase 3 — Knowledge/data layer (MVP)
+## Phase 3 — Knowledge/data layer (MVP) — ✅ done (2026-08-20)
 
 - Build connectors for the 8 open-license MVP sources: UniProt, RCSB PDB, AlphaFold DB,
   Reactome, BioModels, BioGRID, STRING, CZ CELLxGENE Census — each returning CURIE-tagged
@@ -105,6 +105,26 @@ passing unmodified while real adapters get checked against a real reference arch
 
 **Exit criterion:** a query like "give me all annotated reactions for gene X" resolves
 across at least 3 of the MVP sources and returns CURIE-linked, source-attributed data.
+
+**Met.** Seven registered `data_connector` plugins hit real, live REST APIs — UniProt,
+RCSB PDB, AlphaFold DB, Reactome, BioModels, STRING, CZ CELLxGENE Discover — plus a KEGG
+connector as the flagship license-gated example (`cradle.knowledge.gate.LicenseGate`, off
+by default, enabled via `CRADLE_LICENSE_ACK_KEGG=1`). BioGRID is implemented against its
+documented API shape but requires a free registered key
+(`CRADLE_BIOGRID_API_KEY`) neither available nor faked in this session — it reports as
+`NotConfiguredError`, a new shared exception the conformance runner now treats as a *skip*,
+distinct from an actual failure (Architecture, Layer 6: an access-control requirement isn't
+the same problem as a broken connector). `cradle.knowledge.router.resolve_all(curie)` fans
+one query out across every registered connector that accepts it — proven against a real
+gene, TP53 (`uniprot:P04637`), chosen because (unlike Phase 1's bacterial toggle-switch
+proteins) it has genuine coverage everywhere: the query resolves across 5 real sources at
+once (`tests/test_knowledge_router.py`), each returning CURIE-linked, source-attributed
+data, with no connector named by the caller. `cradle.knowledge.resolver.resolve_curie()`
+independently dereferences any CURIE via the live identifiers.org API regardless of
+whether Cradle has a connector for its namespace. The BioModels connector's live fetch of
+`biomodels.db:BIOMD0000000507` also independently corroborated the exact CURIE Phase 1
+already annotated the toggle switch with — including confirming its PubMed ID
+(10659857), not previously double-checked.
 
 ## Phase 4 — First real validated model
 

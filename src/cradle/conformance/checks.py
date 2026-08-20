@@ -12,13 +12,41 @@ class ConformanceError(AssertionError):
     """Raised when a registered plugin does not satisfy its contract."""
 
 
-def check_data_connector(instance: Any) -> None:
-    if not isinstance(instance, DataConnector):
-        raise ConformanceError(f"{instance!r} does not implement DataConnector")
-    record = instance.fetch("test:0000")
+def _assert_valid_record(instance: Any, record: Any) -> None:
     for key in ("curie", "source", "license", "data"):
         if key not in record:
             raise ConformanceError(f"{instance.name} fetch() result missing '{key}'")
+
+
+def check_data_connector(instance: Any) -> None:
+    if not isinstance(instance, DataConnector):
+        raise ConformanceError(f"{instance!r} does not implement DataConnector")
+
+    from cradle.knowledge.gate import LicenseGate, LicenseNotAcknowledgedError
+
+    if isinstance(instance, LicenseGate):
+        # A gated connector's correct behavior is to refuse until
+        # acknowledged — verify the refusal actually happens, then verify
+        # it actually works once acknowledged, rather than either treating
+        # the refusal as a failure or skipping the gate untested.
+        probe_curie = getattr(instance, "conformance_curie", "test:0000")
+        try:
+            instance.fetch(probe_curie)
+        except LicenseNotAcknowledgedError:
+            pass
+        else:
+            raise ConformanceError(
+                f"{instance.name} is license-gated but fetch() succeeded without acknowledgment"
+            )
+        instance.acknowledge()
+        _assert_valid_record(instance, instance.fetch(probe_curie))
+        return
+
+    # Real connectors declare a known-good CURIE to smoke-test against
+    # (they can't answer the Phase 0 toy "test:0000"); hello_data has none
+    # and keeps using that literal, unmodified.
+    probe_curie = getattr(instance, "conformance_curie", "test:0000")
+    _assert_valid_record(instance, instance.fetch(probe_curie))
 
 
 def _check_toy_simulation_adapter(instance: Any) -> None:

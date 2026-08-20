@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-kegg-data"
+version = "0.0.0"
+description = "KEGG data connector for Cradle, license-gated: free for individual academic use on kegg.jp only, redistribution/commercial use requires a paid license."
+requires-python = ">=3.11"
+dependencies = ["cradle-core"]
+
+[project.entry-points."cradle.data_connectors"]
+kegg = "kegg_data.connector:build_gated_connector"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-string-data"
+version = "0.0.0"
+description = "STRING data connector for Cradle (protein-protein functional association, CC BY 4.0)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core"]
+
+[project.entry-points."cradle.data_connectors"]
+string = "string_data.connector:StringConnector"
+
+[tool.setuptools.packages.find]
+where = ["src"]

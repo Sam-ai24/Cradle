@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-reactome-data"
+version = "0.0.0"
+description = "Reactome data connector for Cradle (pathways/reactions, CC0)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core"]
+
+[project.entry-points."cradle.data_connectors"]
+reactome = "reactome_data.connector:ReactomeConnector"
+
+[tool.setuptools.packages.find]
+where = ["src"]

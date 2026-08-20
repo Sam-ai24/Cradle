@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 
 from cradle.conformance.checks import CHECKS, ConformanceError
+from cradle.contracts.errors import NotConfiguredError
 from cradle.registry import discover_all
 
 
@@ -16,6 +17,7 @@ def main() -> int:
     """
     discovered = discover_all()
     failures = 0
+    skipped = 0
     total = 0
     for kind, plugins in discovered.items():
         for plugin in plugins:
@@ -23,6 +25,9 @@ def main() -> int:
             label = f"{kind}:{plugin.entry_point_name} ({plugin.distribution})"
             try:
                 CHECKS[kind](plugin.instance)
+            except NotConfiguredError as exc:
+                skipped += 1
+                print(f"SKIP  {label} - {exc}")
             except ConformanceError as exc:
                 failures += 1
                 print(f"FAIL  {label} - {exc}")
@@ -32,7 +37,8 @@ def main() -> int:
             else:
                 print(f"PASS  {label}")
 
-    print(f"\n{total - failures}/{total} plugins passed conformance")
+    passed = total - failures - skipped
+    print(f"\n{passed}/{total} plugins passed conformance ({skipped} skipped, not configured)")
     return 1 if failures else 0
 
 
