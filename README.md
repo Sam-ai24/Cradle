@@ -7,6 +7,8 @@ system keeps absorbing better science and better models instead of being rewritt
 
 ## Documents
 
+- [`docs/HANDOFF.md`](docs/HANDOFF.md) — start here when picking this project back up:
+  current phase-by-phase state, what's pending, and operational notes.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the layered design: what standard sits at
   each swap boundary, which open-source projects to build on vs. avoid reinventing, and why.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — the phased, step-by-step build plan.
