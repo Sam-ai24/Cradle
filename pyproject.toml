@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-core"
+version = "0.0.0"
+description = "Cradle core: contracts, plugin registry, and conformance testing for a swappable cell-simulation platform."
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "antimony>=3.1",
+    "python-libsbml>=5.21",
+    "python-libsedml>=2.0",
+    "python-libcombine>=0.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+# Not a permanent core dependency: used in Phase 1 only to execute a COMBINE
+# archive end-to-end and prove the substrate round-trips. Phase 2 replaces
+# this with a proper Tellurium/libRoadRunner SimulationAdapter behind the
+# BioSimulators-style contract (Architecture, Layer 4).
+demo = ["tellurium>=2.2"]
+
+[project.scripts]
+cradle-conformance = "cradle.conformance.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

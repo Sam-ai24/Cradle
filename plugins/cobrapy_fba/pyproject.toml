@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-cobrapy-fba"
+version = "0.0.0"
+description = "COBRApy flux-balance-analysis simulation adapter for Cradle, subprocess-isolated per NOTICE.md (COBRApy is GPL/LGPL)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core", "cobra"]
+
+[project.entry-points."cradle.simulation_adapters"]
+cobrapy = "cobrapy_fba.adapter:CobraFbaSimulationAdapter"
+
+[tool.setuptools.packages.find]
+where = ["src"]

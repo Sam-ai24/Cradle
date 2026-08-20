@@ -1,0 +1,21 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "Cradle",
+  "description": "A modular cell-simulation platform in which data sources, simulation engines, and AI/foundation models are independently versioned, swappable components, designed for scientific traceability (MIRIAM annotation, MIASE-compliant provenance) rather than a fixed, monolithic model.",
+  "license": "https://spdx.org/licenses/Apache-2.0",
+  "codeRepository": "TODO: add repository URL once hosted",
+  "programmingLanguage": "Python",
+  "runtimePlatform": "Python 3.11+",
+  "version": "0.0.0-phase0",
+  "dateCreated": "2026-08-20",
+  "developmentStatus": "https://www.repostatus.org/#concept",
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "TODO",
+      "familyName": "TODO — fill in your name here",
+      "email": "b.davtalab@eplanetbrokers.com"
+    }
+  ]
+}

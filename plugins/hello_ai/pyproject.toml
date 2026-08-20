@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-hello-ai"
+version = "0.0.0"
+description = "Reference AI-model-adapter plugin proving Cradle's plugin/conformance mechanism."
+requires-python = ">=3.11"
+dependencies = ["cradle-core"]
+
+[project.entry-points."cradle.ai_model_adapters"]
+hello = "hello_ai.adapter:HelloEmbeddingAdapter"
+
+[tool.setuptools.packages.find]
+where = ["src"]
