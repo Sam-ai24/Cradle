@@ -1,7 +1,7 @@
 # Cradle — Session Handoff
 
-**Last updated:** 2026-08-20 (end of the session that built Phases 0-10 from scratch, in
-one continuous run — every commit in `git log` is dated 2026-08-20).
+**Last updated:** 2026-08-21 (Phases 0-10 were built 2026-08-20 in one continuous run; Phase
+11 was built 2026-08-21 in the following session).
 
 This file is the single "start here" document for picking the project back up. It doesn't
 duplicate `docs/ROADMAP.md` (the phase-by-phase build plan and detailed exit-criterion
@@ -32,7 +32,7 @@ AI features (LLM orchestration) are fully optional and degrade gracefully with n
   `OPENROUTER_API_KEY` / `CRADLE_BIOGRID_API_KEY` to install or for non-AI features to work;
   their absence must always produce a clear `NotConfiguredError` skip, never a crash.
 
-## Current state (2026-08-20)
+## Current state (2026-08-21)
 
 | Phase | Status | Notes |
 |---|---|---|
@@ -47,12 +47,14 @@ AI features (LLM orchestration) are fully optional and degrade gracefully with n
 | 8 — Intervention validation | 🟡 3/4 done | drugs/gene-fitness/gene-edits/aging done with real data; environmental stress (ASTRA) blocked (no REST API) |
 | 9 — Spatial/multicellular | ✅ done | E-Cell4 (after CompuCell3D/PhysiCell/Smoldyn all ruled out) |
 | 10 — Visualization | 🟡 core done | Cytoscape.js + Mol* scale-router, 2-way run comparison; Escher/Simularium/VTK.js not built (no data to feed them yet) |
-| 11 — Lab-facing interface | ⬜ not started | Jupyter widgets, CWL/Nextflow pipelines, Apptainer/Docker packaging |
+| 11 — Lab-facing interface | 🟡 3/4 done | `cradle.lab` notebook API + real executed notebook done; Snakemake pipeline runs, CWL written but `cwltool` doesn't run natively on Windows; Docker/Apptainer files written but unbuilt (no Docker/WSL2 here) |
 | 12 — Second-wave AI & governance | ⬜ not started | Arc State/ESM3/AlphaFold3/etc., community contribution process |
 
-Full pytest suite as of the last commit: **51 passed, 2 skipped** (BioGRID key,
-LLM-orchestrator keys — both expected, both intentional "not configured" skips), **0
-failed**.
+Full pytest suite as of the last commit: **60 passed, 1 skipped** (an unconfigured key/
+license gate — expected), **0 failed** on a normal run. One live-network conformance test
+(CollecTRI, against omnipathdb.org/reactome.org) is known to flake under rate-limiting if the
+full suite is re-run repeatedly in a short window — unrelated to Phase 11's changes, and it
+passes on a normal single run.
 
 ## What just happened in this session (chronological)
 
@@ -78,12 +80,32 @@ failed**.
    structures server-side). Verified end-to-end in a live Chrome browser via
    `claude-in-chrome` (correct render, correct structure load + pLDDT, correct
    no-structure message, synced slider, zero console errors).
-5. Closed out Phase 10 just now: added `tests/test_visualization_export.py` (checks the
-   export script's output against the model's own real CURIEs/edges, not hardcoded
-   expectations, plus both engines' trajectory shapes), ran the full suite (51 passed, 2
-   skipped, 0 failed), updated `docs/ROADMAP.md` and `README.md` with the real, honest
-   Phase 10 outcome (including the two bugs and the three deferred renderers), and
-   committed everything as `2e24d00`.
+5. Closed out Phase 10: added `tests/test_visualization_export.py` (checks the export
+   script's output against the model's own real CURIEs/edges, not hardcoded expectations,
+   plus both engines' trajectory shapes), ran the full suite (51 passed, 2 skipped, 0
+   failed), updated `docs/ROADMAP.md` and `README.md` with the real, honest Phase 10 outcome
+   (including the two bugs and the three deferred renderers), and committed everything as
+   `2e24d00`. Then wrapped the session: wrote this handoff doc, linked it from README, and
+   added a memory pointer for future sessions.
+6. Built Phase 11 (this session, 2026-08-21): `cradle.lab` (`api.py`/`report.py`/`widgets.py`)
+   is the notebook-facing API; `notebooks/phase11_lab_workflow.ipynb` is a real, executed
+   fit → validate → apply → simulate → benchmark → curate → report notebook (built + run by
+   `scripts/lab_pipeline/build_notebook.py` via `nbclient`, outputs baked in). Found and fixed
+   a real bug: COPASI's fitted-parameter name comes back as `"Values[alpha1].InitialValue"`,
+   not the bare `"Values[alpha1]"` its own input uses — caught only because
+   `apply_fitted_parameters` actually round-trips a real fit, not just checks the value.
+   Wrote `workflows/lab_pipeline.cwl` (real, valid CWL) and four CLI scripts under
+   `scripts/lab_pipeline/`; discovered `cwltool` doesn't run natively on Windows via two
+   concrete errors (an unconditional `import pwd` crash in its Singularity-client dependency,
+   then a `WinError 1314` needing a Windows privilege a normal account doesn't hold) rather
+   than assuming it from cwltool's own "Windows unsupported" warning. Built
+   `workflows/Snakefile` as the equivalent pipeline that actually runs here (verified by
+   `tests/test_lab_pipeline.py` invoking it as a real subprocess). Wrote `Dockerfile` and
+   `Apptainer.def` but left them explicitly unbuilt/unverified — no Docker Desktop or WSL2 on
+   this machine, confirmed directly, not assumed. Ran the full suite (60 passed, 1 skipped, 0
+   failed on a clean run — one live-network conformance test flaked under rate-limiting from
+   repeated re-runs, unrelated to Phase 11), updated `docs/ROADMAP.md`/`README.md`/this file,
+   and committed.
 
 ## Pending work, in a reasonable priority order
 
@@ -105,9 +127,18 @@ failed**.
    becomes buildable once Phase 9's E-Cell4 particle-position output is exported in a format
    Simularium's converters accept — worth scoping as a small follow-up to Phase 9/10 rather
    than waiting for a new phase.
-6. **Phase 11** (Jupyter widgets, CWL/Nextflow pipelines, Apptainer/Docker) — not started.
-7. **Phase 12** (Arc State/ESM3/AlphaFold3/etc., community contribution process) — not
-   started; also explicitly meant to recur (revisit Phase 2/5/7/9/10's engine choices
+6. **Phase 11 container build/test**: `Dockerfile` and `Apptainer.def` are written but never
+   built or run — this machine has no Docker Desktop and no WSL2. On a machine (or CI runner)
+   that has either, actually build and run them (`docker build -t cradle .` /
+   `apptainer build cradle.sif Apptainer.def`, then run the test suite inside) to convert
+   "written" into "verified." Not urgent, but the one Phase 11 item that's genuinely just
+   waiting on an environment, not a design decision.
+7. **Phase 11 CWL on a Linux/WSL runner** (optional): `workflows/lab_pipeline.cwl` is real and
+   valid but unverified by an actual `cwltool` run (only Snakemake was confirmed to execute,
+   on this Windows machine). If a Linux/WSL environment becomes available, running
+   `cwltool workflows/lab_pipeline.cwl ...` there would close this out fully.
+8. **Phase 12** (Arc State/ESM3/AlphaFold3/etc., community contribution process) — not
+   started; also explicitly meant to recur (revisit Phase 2/5/7/9/10/11's engine/tool choices
    against the state of the art at that time).
 
 No other loose ends: nothing half-implemented or silently stubbed. Every "not done" item
@@ -132,15 +163,31 @@ behind each one), not a TODO that was skipped without checking.
 - License-gated connectors (KEGG, DepMap) are off by default and gated per `NOTICE.md`'s
   terms — follow the same `LicenseGate`/`training_eligible` pattern for any new restricted
   source.
+- Phase 11 added two optional extras: `pip install -e ".[lab]"` (ipywidgets/jupyterlab/
+  matplotlib/nbformat/nbclient, for the notebook + widgets) and `pip install -e ".[pipelines]"`
+  (Snakemake). Neither is required for core Cradle or for `cradle.lab.api`/`.report`.
+- **`cwltool` does not run natively on this Windows machine** — use `workflows/Snakefile`
+  (`snakemake -s workflows/Snakefile --cores 1`) for the actual fit→apply→simulate→benchmark
+  pipeline; `workflows/lab_pipeline.cwl` is kept as a real, valid, but locally-unverified
+  equivalent for a Linux/WSL/CI runner. If you need to re-diagnose `cwltool` on Windows, note
+  that a throwaway `pwd.py` stub was added to `.venv/Lib/site-packages/` during Phase 11's
+  investigation purely to get past its Singularity-client dependency's `import pwd` crash —
+  it's gitignored (inside `.venv/`) and not a repo artifact; recreate it only if you need to
+  re-confirm the *next* blocker (`WinError 1314`, a missing Windows symlink privilege) rather
+  than assuming this session's finding is stale.
+- Shell rules/scripts that invoke `python` as a bare command (e.g. inside `workflows/Snakefile`)
+  resolve it via `sys.executable`, not PATH — this machine has more than one Python install on
+  PATH, and the first one found is not this project's venv.
 
 ## Exactly what to tell the next session
 
 > Continue the Cradle project at `C:\Users\bahad\Cradle`. Read `docs/HANDOFF.md` first for
-> full context, then `docs/ROADMAP.md` for phase detail. Phases 0-10 are built and
-> committed (10 is "core done" — see the table in HANDOFF.md for exactly what's partial and
-> why). Go with Phase 11 [or: finish Phase 5's remaining AI contracts / Phase 7's docking
-> contract / Phase 8's ASTRA connector / Phase 10's Simularium renderer — pick whichever you
-> want next]. Keep everything local (no Claude Artifacts for this project), verify every
-> claim against a real API/library/dataset before writing it down, document genuine
-> blockers honestly instead of faking or skipping them, and commit to git at the end of the
-> phase with a detailed message in the same style as the existing commits.
+> full context, then `docs/ROADMAP.md` for phase detail. Phases 0-11 are built and committed
+> (10 and 11 are each "partial, done" — see the table in HANDOFF.md for exactly what's
+> partial and why). Go with Phase 12 [or: finish Phase 5's remaining AI contracts / Phase 7's
+> docking contract / Phase 8's ASTRA connector / Phase 10's Simularium renderer / Phase 11's
+> container build-and-test on a machine with Docker or WSL2 — pick whichever you want next].
+> Keep everything local (no Claude Artifacts for this project), verify every claim against a
+> real API/library/dataset before writing it down, document genuine blockers honestly instead
+> of faking or skipping them, and commit to git at the end of the phase with a detailed
+> message in the same style as the existing commits.

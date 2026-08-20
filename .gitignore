@@ -5,3 +5,12 @@ __pycache__/
 .pytest_cache/
 build/
 dist/
+workflows/example_output/
+.snakemake/
+# transient run artifacts from executing notebooks/phase11_lab_workflow.ipynb
+# in place (see scripts/lab_pipeline/build_notebook.py) - regenerated fresh
+# each run, not part of the published notebook (which keeps its own real,
+# already-executed outputs baked into the checked-in .ipynb).
+notebooks/phase11_*.xml
+notebooks/phase11_*.omex
+notebooks/phase11_report.md

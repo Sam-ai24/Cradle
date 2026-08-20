@@ -1,0 +1,43 @@
+# Phase 11: HPC/cluster container packaging.
+#
+# Fully unbuildable and unverified on this machine, more so than the
+# Dockerfile: Apptainer/Singularity is Linux-only regardless of container
+# backend, and this machine has neither Docker Desktop nor WSL2 installed
+# (confirmed directly - see docs/ROADMAP.md Phase 11) - there is no path to
+# even attempt a build here, not just an untested one. Written using the
+# standard "bootstrap from the already-written Dockerfile" idiom (the
+# common, low-risk way to get an Apptainer image without maintaining two
+# separate build recipes) rather than left unwritten. Build/run this on an
+# actual Linux host or HPC login node with Apptainer installed:
+#
+#   apptainer build cradle.sif Apptainer.def
+#   apptainer exec cradle.sif pytest -q
+Bootstrap: docker
+From: python:3.11-slim
+
+%files
+    pyproject.toml /cradle/pyproject.toml
+    src /cradle/src
+    plugins /cradle/plugins
+    models /cradle/models
+    scripts /cradle/scripts
+    tests /cradle/tests
+    workflows /cradle/workflows
+
+%post
+    cd /cradle
+    pip install --no-cache-dir -e ".[dev,demo,lab,pipelines]" \
+        -e plugins/hello_data -e plugins/hello_sim -e plugins/hello_ai \
+        -e plugins/tellurium_sim -e plugins/copasi_sim -e plugins/cobrapy_fba \
+        -e plugins/uniprot_data -e plugins/pdb_data -e plugins/alphafold_data \
+        -e plugins/reactome_data -e plugins/biomodels_data -e plugins/string_data \
+        -e plugins/biogrid_data -e plugins/cellxgene_data -e plugins/kegg_data \
+        -e plugins/chembl_data -e plugins/depmap_data -e plugins/scperturb_data \
+        -e plugins/aging_expression_data -e plugins/collectri_data \
+        -e plugins/openmm_md -e plugins/grn_inference -e plugins/boolean_qual_sim \
+        -e plugins/ecell4_spatial -e plugins/perturbation_baselines \
+        -e plugins/llm_orchestrator
+
+%runscript
+    cd /cradle
+    exec pytest -q "$@"

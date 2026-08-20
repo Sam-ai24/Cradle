@@ -1,0 +1,14 @@
+# Default configuration for workflows/Snakefile (and the equivalent inputs
+# for workflows/lab_pipeline.cwl). Points at the checked-in example inputs
+# (workflows/example_input/, built by scripts/lab_pipeline/prepare_example_inputs.py)
+# so the pipeline is runnable immediately; override any key with
+# `snakemake --config key=value` for a real model.
+sbml: workflows/example_input/model.xml
+observed_data: workflows/example_input/observed_data.json
+fit_spec: workflows/example_input/fit_spec.json
+species: ["U", "V"]
+benchmark_species: "U"
+end_time: 2.0
+steps: 20
+tolerance: 0.01
+output_dir: workflows/example_output

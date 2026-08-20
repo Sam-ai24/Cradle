@@ -519,7 +519,7 @@ particle positions over time, not yet exported here), so adding them now would m
 against placeholder data. Same "don't build against nothing real" rule Phases 5/7/8 already
 applied to their own deferred pieces.
 
-## Phase 11 — Lab-facing interface & orchestration
+## Phase 11 — Lab-facing interface & orchestration — 🟡 3/4 done (2026-08-21)
 
 - Jupyter-native API + widgets as the primary programmatic interface, complementary to the
   Phase 10 visual explorer (both read the same CURIE-addressed data; neither is secondary).
@@ -532,6 +532,71 @@ applied to their own deferred pieces.
 **Exit criterion:** someone outside the core team (ideally an actual lab collaborator) runs
 a full fit-to-simulate workflow from a notebook without reading the source code, and the
 output is something they'd trust enough to put in a lab notebook.
+
+**Notebook API + widgets — done.** `cradle.lab` (`api.py`, `report.py`, `widgets.py`) is a
+thin, notebook-facing front door onto capabilities Phases 1-9 already built and verified —
+no new science, just names and signatures meant to be called without reading `src/cradle/`
+first. `widgets.py` needs the new optional `lab` extra (`pip install -e ".[lab]"`,
+ipywidgets/jupyterlab/matplotlib) and is not imported by `cradle.lab` itself, so every other
+function works with zero widget dependencies installed — the same graceful-degradation shape
+Phase 5 uses for AI provider keys, just for an optional dependency instead of a credential.
+`notebooks/phase11_lab_workflow.ipynb` is the actual exit-criterion artifact: a real, executed
+notebook (built and run by `scripts/lab_pipeline/build_notebook.py` via `nbclient`, so its
+checked-in outputs are proof of a real run, not hand-edited) that fits the toggle switch's
+`alpha1` against synthetic ground-truth data, validates the reported 95% CI actually contains
+the true value, writes the fit back into the model (`apply_fitted_parameters` — closing the
+loop that a bare fitted number never gets used), simulates the updated model on both Tellurium
+and COPASI, confirms they agree to <0.001%, curates the result, and exports a lab-report
+Markdown file. `tests/test_lab_api.py` and `tests/test_lab_widgets.py` cover the same ground
+outside the notebook, including a real bug the notebook's own fit-then-apply step surfaced:
+COPASI's fitted-parameter name comes back as `"Values[alpha1].InitialValue"`, not the bare
+`"Values[alpha1]"` its own `fit_parameters` input uses — caught because
+`test_lab_api.py::test_fit_then_apply_then_simulate...` actually round-trips a real fit
+through `apply_fitted_parameters`, not just checks the fitted value.
+
+**CWL pipeline — written and semantically valid, but confirmed not runnable natively on
+Windows; Snakemake substituted as the pipeline that actually runs.** `workflows/lab_pipeline.cwl`
+defines the same fit → apply → simulate (Tellurium + COPASI) → benchmark workflow as four
+chained CommandLineTool steps wrapping real, independently-tested CLI scripts
+(`scripts/lab_pipeline/*_step.py`) — but running it hit two real, confirmed `cwltool`/Windows
+incompatibilities, not assumed from cwltool's own documentation alone: (1) `cwltool`'s
+Singularity-client dependency (`spython`) does an unconditional `import pwd` at module load,
+which crashes on Windows immediately (`pwd` is POSIX-only) — worked around locally with a
+throwaway stub module purely to get past the crash and confirm what's next, not part of the
+repo; (2) past that, `cwltool`'s input-file staging unconditionally tries to `os.symlink()`,
+which needs `SeCreateSymbolicLinkPrivilege` (Developer Mode or an Administrator account) that
+a normal Windows user account doesn't hold — confirmed via the actual `WinError 1314` cwltool
+raised, not inferred. Enabling that privilege is a system security-setting change outside
+what's appropriate to do unilaterally, so this was left as a genuine, documented blocker
+rather than worked around further — cwltool's own runtime warning ("no longer supports
+running CWL workflows natively on MS Windows... see WSL2") independently corroborates this.
+The roadmap bullet's own named alternative, **Snakemake**, has no such requirement:
+`workflows/Snakefile` (same four steps, same example inputs under `workflows/example_input/`,
+built by `scripts/lab_pipeline/prepare_example_inputs.py`) runs end to end natively on this
+machine, confirmed by `tests/test_lab_pipeline.py` actually invoking `python -m snakemake` as
+a subprocess and checking its real output — fitted alpha1 recovers the true value, and the
+two engines agree to ~3e-6. The CWL document itself remains a real, valid artifact for a
+Linux/WSL/CI runner where `cwltool` is supported — not deleted, just not the locally-verified
+path.
+
+**Container packaging — written, not built or run; a confirmed capability gap, not a lazy
+placeholder.** `Dockerfile` (local/cloud) and `Apptainer.def` (HPC, using the standard
+"bootstrap from the Docker image" idiom) both exist, but neither was built or tested: this
+machine has no Docker Desktop and no WSL2 (confirmed directly — `docker`/`wsl` commands are
+absent/uninstalled), and Apptainer is Linux-only regardless of Docker, so there's no path to
+even attempt a build here. Lower risk than it might sound: every compiled dependency Cradle
+needs (antimony, python-libsbml/-libsedml/-libcombine, h5py, basico) was confirmed via
+`pip download --platform manylinux2014_x86_64` to publish real Linux wheels for CPython
+3.11, so `python:3.11-slim` shouldn't need a compiler toolchain — but "shouldn't need" is a
+real, disclosed gap from "confirmed," and this is flagged as such rather than claimed done.
+
+**ELN/LIMS export — done.** `cradle.lab.report.write_lab_report()` builds one self-contained,
+timestamped Markdown file from the same typed dataclasses the rest of Cradle already produces
+(`EstimationReport`, `CurationRecord`, `SimulationResult`) — no new data shape invented for
+this, and no field that isn't traceable back to a real fit/curation/simulation result. Proven
+against real content in `tests/test_lab_api.py` (checks the rendered Markdown actually
+contains the real fitted value, CI, and curation tier, not just that a file was written) and
+exercised for real in the Phase 11 notebook's final cell.
 
 ## Phase 12 — Second-wave AI models & governance maturity
 

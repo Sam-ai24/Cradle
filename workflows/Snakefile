@@ -1,0 +1,90 @@
+# Phase 11: fit -> apply -> simulate (2 adapters) -> benchmark, as a
+# Snakemake pipeline. Same roadmap bullet as workflows/lab_pipeline.cwl
+# ("CWL pipeline definitions... executable via Nextflow or Snakemake") and
+# the same four scripts/lab_pipeline/*.py steps that CWL file wraps, but
+# this is the one actually verified to *run* on this Windows machine:
+# cwltool's own file-staging step unconditionally symlinks inputs, which
+# needs a Windows privilege (SeCreateSymbolicLinkPrivilege) a normal user
+# account doesn't hold — confirmed by actually attempting the run, not
+# assumed from cwltool's own "Windows unsupported" warning alone. Snakemake
+# has no such requirement and this pipeline is confirmed to run end to end.
+#
+# Run (from the repo root, after `python scripts/lab_pipeline/prepare_example_inputs.py`):
+#   snakemake -s workflows/Snakefile --cores 1
+#
+# Override any input via --config, e.g.:
+#   snakemake -s workflows/Snakefile --cores 1 --config sbml=my_model.xml
+
+import os
+import sys
+
+REPO_ROOT = os.path.dirname(os.path.dirname(workflow.snakefile))
+SCRIPTS = os.path.join(REPO_ROOT, "scripts", "lab_pipeline")
+#: The interpreter actually running Snakemake, not whatever "python" a shell
+#: rule's subprocess would resolve from PATH — on a machine with more than
+#: one Python install (true of this one), those are not the same interpreter,
+#: and the wrong one is missing every Cradle dependency.
+PYTHON = sys.executable
+EXAMPLE_INPUT = os.path.join(REPO_ROOT, "workflows", "example_input")
+
+configfile: os.path.join(REPO_ROOT, "workflows", "lab_pipeline_config.yaml")
+
+OUT = config["output_dir"]
+SPECIES = config["species"]
+BENCHMARK_SPECIES = config["benchmark_species"]
+ADAPTERS = ["tellurium", "copasi"]
+
+
+rule all:
+    input:
+        os.path.join(OUT, "benchmark.json"),
+
+
+rule fit:
+    input:
+        sbml=config["sbml"],
+        observed_data=config["observed_data"],
+        fit_spec=config["fit_spec"],
+    output:
+        os.path.join(OUT, "estimation_report.json"),
+    shell:
+        '"{PYTHON}" "{SCRIPTS}/fit_step.py" --sbml "{input.sbml}" '
+        '--observed-data "{input.observed_data}" --fit-spec "{input.fit_spec}" '
+        '--output "{output}"'
+
+
+rule apply:
+    input:
+        sbml_in=config["sbml"],
+        estimation_report=os.path.join(OUT, "estimation_report.json"),
+    output:
+        os.path.join(OUT, "model_fitted.xml"),
+    shell:
+        '"{PYTHON}" "{SCRIPTS}/apply_step.py" --sbml-in "{input.sbml_in}" '
+        '--estimation-report "{input.estimation_report}" --sbml-out "{output}"'
+
+
+rule simulate:
+    input:
+        sbml=os.path.join(OUT, "model_fitted.xml"),
+    output:
+        os.path.join(OUT, "result_{adapter}.json"),
+    params:
+        species=SPECIES,
+    shell:
+        '"{PYTHON}" "{SCRIPTS}/simulate_step.py" --sbml "{input.sbml}" '
+        "--species {params.species} --adapter {wildcards.adapter} "
+        '--end-time {config[end_time]} --steps {config[steps]} --output "{output}"'
+
+
+rule benchmark:
+    input:
+        expand(os.path.join(OUT, "result_{adapter}.json"), adapter=ADAPTERS),
+    output:
+        os.path.join(OUT, "benchmark.json"),
+    params:
+        species=BENCHMARK_SPECIES,
+    shell:
+        '"{PYTHON}" "{SCRIPTS}/benchmark_step.py" --results {input} '
+        "--species {params.species} --tolerance {config[tolerance]} "
+        '--output "{output}"'

@@ -24,6 +24,26 @@ dev = ["pytest>=8"]
 # this with a proper Tellurium/libRoadRunner SimulationAdapter behind the
 # BioSimulators-style contract (Architecture, Layer 4).
 demo = ["tellurium>=2.2"]
+# Phase 11: the lab-facing notebook API's core (cradle.lab.api, .report) has
+# no extra dependencies beyond core Cradle. This extra is only for the
+# interactive ipywidgets explorer (cradle.lab.widgets) and for actually
+# running/authoring notebooks against it — matching the same "optional,
+# graceful" shape Phase 5 established for AI provider keys.
+lab = [
+    "ipywidgets>=8.1",
+    "jupyterlab>=4.2",
+    "nbformat>=5.10",
+    "nbclient>=0.10",
+    "matplotlib>=3.8",
+]
+# Phase 11: workflows/Snakefile is the actually-runnable multi-step pipeline
+# executor on Windows. workflows/lab_pipeline.cwl is an equivalent, real CWL
+# document (same 4 scripts/lab_pipeline/*.py steps) kept for portability to
+# a Linux/WSL/CI runner, but `cwltool` does not run natively on Windows —
+# confirmed directly (its own Singularity-client dependency crashes on
+# import, and past that its input-staging step needs a Windows privilege a
+# normal account doesn't hold) — so it's deliberately not listed here.
+pipelines = ["snakemake>=8.0"]
 
 [project.scripts]
 cradle-conformance = "cradle.conformance.cli:main"

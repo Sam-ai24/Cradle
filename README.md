@@ -135,8 +135,22 @@ sends no CORS header, so structures are downloaded once server-side rather than 
 by the browser. Escher/Simularium/VTK.js are not built — there's no volumetric or
 spatial-simulation output yet to visualize with them.
 
+**Phase 11 (lab-facing interface) — 3/4 done.** `cradle.lab` is a notebook-facing front door
+onto Phases 1-9's existing capabilities — `notebooks/phase11_lab_workflow.ipynb` is a real,
+executed notebook (outputs baked in, not hand-edited) that fits a parameter against synthetic
+ground-truth data, applies the fit back into the model, simulates it on two independent
+engines, confirms they agree, curates the result, and exports a lab-report Markdown file,
+using only `cradle.lab` calls. The interactive ipywidgets explorer needs the new `lab` extra
+and degrades gracefully without it, same shape as Phase 5's AI keys. `workflows/lab_pipeline.cwl`
+is a real, valid CWL pipeline, but `cwltool` itself doesn't run natively on Windows (confirmed
+via two concrete errors, not assumed) — `workflows/Snakefile` is the equivalent pipeline that
+actually runs here, verified by a real subprocess-invoking test. `Dockerfile`/`Apptainer.def`
+are written but unbuilt: no Docker or WSL2 is installed on this machine, a confirmed gap, not
+a skipped step.
+
 See `docs/ROADMAP.md` for what's next (finishing Phase 5's AI layer, Phase 7's docking
-contract, Phase 8's environmental-stress category, or Phase 10's remaining renderers).
+contract, Phase 8's environmental-stress category, Phase 10's remaining renderers, or
+Phase 11's container build/test on a machine that actually has Docker or WSL2).
 
 ## Getting started (local dev)
 
@@ -173,3 +187,18 @@ python -m http.server 8743 --directory viz    # then open http://localhost:8743
 
 `viz/` loads Mol* and Cytoscape.js from a CDN (`jsdelivr`) — no npm/build step — and reads
 only the local `viz/data/` files it just exported; nothing else is fetched live.
+
+For the Phase 11 lab-facing tools, add the `lab` extra (`pip install -e ".[lab]"`) for the
+notebook/widgets and `pipelines` (`pip install -e ".[pipelines]"`) for Snakemake:
+
+```bash
+pip install -e ".[lab,pipelines]"
+
+# open notebooks/phase11_lab_workflow.ipynb in Jupyter, or rebuild+execute it fresh:
+python scripts/lab_pipeline/build_notebook.py
+
+# run the fit -> apply -> simulate -> benchmark pipeline (Snakemake; cwltool does not run
+# natively on Windows, see docs/ROADMAP.md Phase 11):
+python scripts/lab_pipeline/prepare_example_inputs.py
+snakemake -s workflows/Snakefile --cores 1
+```
