@@ -1,0 +1,60 @@
+{
+  "elements": {
+    "nodes": [
+      {
+        "data": {
+          "id": "PX",
+          "label": "LacI protein",
+          "curie": "uniprot:P03023",
+          "structure": {
+            "accession": "P03023",
+            "local_path": "data/structures/P03023.pdb",
+            "global_plddt": 93.69
+          }
+        }
+      },
+      {
+        "data": {
+          "id": "PY",
+          "label": "TetR protein",
+          "curie": "uniprot:P04483",
+          "structure": {
+            "accession": "P04483",
+            "local_path": "data/structures/P04483.pdb",
+            "global_plddt": 93.06
+          }
+        }
+      },
+      {
+        "data": {
+          "id": "PZ",
+          "label": "cI protein",
+          "curie": "uniprot:P03034"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "data": {
+          "source": "PX",
+          "target": "PY",
+          "label": "represses"
+        }
+      },
+      {
+        "data": {
+          "source": "PY",
+          "target": "PZ",
+          "label": "represses"
+        }
+      },
+      {
+        "data": {
+          "source": "PZ",
+          "target": "PX",
+          "label": "represses"
+        }
+      }
+    ]
+  }
+}

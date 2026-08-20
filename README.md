@@ -120,8 +120,21 @@ GPL-3.0) and is verified against the *exact* analytical solution of the diffusio
 — particle-position spread growing as `sqrt(2·D·t)` from a point source, checked at 4
 independent time points, not just a qualitative pattern.
 
+**Phase 10 (visualization & interactive exploration) — core done.** `viz/` is a real,
+browser-verified scale-router built on **Cytoscape.js** (pathway-scale network) and
+**Mol\*** (molecular-scale structure): clicking a protein in the repression-ring network
+loads its real AlphaFold structure, and a shared time-slider drives two synchronized SVG
+charts comparing the Phase 2 Tellurium and COPASI adapters on the same published Phase 4
+archive. `scripts/export_visualization_data.py` sources every node, edge, and CURIE from the
+model's own real annotations rather than restating them, and found two genuine gaps along
+the way: AlphaFold DB has no entry for one of the three proteins (a confirmed 404, not a
+bug — the page says so honestly when that node is clicked), and AlphaFold's file server
+sends no CORS header, so structures are downloaded once server-side rather than fetched live
+by the browser. Escher/Simularium/VTK.js are not built — there's no volumetric or
+spatial-simulation output yet to visualize with them.
+
 See `docs/ROADMAP.md` for what's next (finishing Phase 5's AI layer, Phase 7's docking
-contract, or Phase 10's visualization layer).
+contract, Phase 8's environmental-stress category, or Phase 10's remaining renderers).
 
 ## Getting started (local dev)
 
@@ -148,3 +161,13 @@ Cradle never ships or assumes a key of its own.
 Optional, for full coverage: `CRADLE_BIOGRID_API_KEY=<your key>` (free registration at
 webservice.thebiogrid.org) and `CRADLE_LICENSE_ACK_KEGG=1` (only after reading NOTICE.md's
 KEGG terms — it's off by default for a reason).
+
+To view the Phase 10 visualization, run the one-time export then serve the static folder:
+
+```bash
+python scripts/export_visualization_data.py   # writes viz/data/*.json + real structure PDBs
+python -m http.server 8743 --directory viz    # then open http://localhost:8743
+```
+
+`viz/` loads Mol* and Cytoscape.js from a CDN (`jsdelivr`) — no npm/build step — and reads
+only the local `viz/data/` files it just exported; nothing else is fetched live.

@@ -451,7 +451,7 @@ the diffusion equation. Checked at 4 independent time points in one run, matchin
 prediction throughout (`tests/test_ecell4_spatial_adapter.py`) — a stronger result than the
 roadmap's own "checkable against a known qualitative behavior" bar asked for.
 
-## Phase 10 — Visualization & interactive exploration
+## Phase 10 — Visualization & interactive exploration — 🟡 core done (2026-08-20)
 
 Closes the biggest gap found when checking the roadmap against the mission statement: an
 interactive visual layer for exploring the cell from whole-cell behavior down to molecular
@@ -472,6 +472,52 @@ tool does this end to end — Cradle builds the compositing layer and reuses ren
 two different scales through the same linked-view state (e.g. pathway network zooming into
 a molecular structure), and view two simulation runs side by side under one shared
 time-slider.
+
+**Met, for two of the four named renderers — with real data throughout, no mock JSON.**
+`scripts/export_visualization_data.py` is a one-time data-prep step (same pattern as
+`curate_repressilator.py`): it reads the *actual* published `models/repressilator/`
+artifacts from Phase 4 rather than re-describing them, pulling each species' real CURIE
+straight from the model's own MIRIAM CVTerms and the repression edges from the model's own
+SBML notes text — so this view goes stale correctly if the published model ever changes,
+instead of silently drifting from it. `viz/index.html`/`style.css`/`app.js` is the scale-
+router: **Cytoscape.js** renders the repression-ring network at the pathway scale; clicking
+a node loads that protein's real **AlphaFold DB** structure into **Mol\*** at the molecular
+scale — the same click-driven link Vitessce's pattern describes, implemented directly rather
+than by pulling in the Vitessce framework itself, since two panels didn't warrant it.
+Comparison is validated for N=2 (Tellurium vs. COPASI, the same registered adapters from
+Phase 2, run against the same published archive from Phase 4): two hand-rolled SVG charts
+share one `<input type="range">` time-slider, each drag moving both charts' markers and a
+live text readout in sync — the general "N synchronized instances" case is a straightforward
+extension of this but wasn't built, since nothing past Phase 9 yet produces a third
+comparable run.
+
+Two real gaps found and handled honestly rather than hidden:
+- **AlphaFold DB has no entry for P03034** (bacteriophage lambda's cI repressor, the PZ
+  species) — confirmed via a direct 404 against the live API, not assumed. The export
+  script skips it gracefully (`try`/`except HttpError`) instead of crashing, and the page
+  shows an explicit "no AlphaFold DB entry for this protein — a real, confirmed gap" message
+  when that node is clicked, rather than failing silently or crashing.
+- **alphafold.ebi.ac.uk sends no `Access-Control-Allow-Origin` header** (confirmed via
+  `curl -sI`), which would have broken a live in-browser fetch of the structure file. Fixed
+  by downloading structures server-side, once, during export (`viz/data/structures/*.pdb`)
+  so the browser only ever fetches same-origin local files — designed around before it could
+  cause a live bug, not patched after one.
+
+Verified end to end in a live browser (`claude-in-chrome`): the network renders the correct
+real repression ring with real protein labels; clicking LacI (PX) loads its real structure
+with its real pLDDT (93.7) displayed; clicking cI (PZ) shows the honest no-structure message
+while leaving the previous structure visible; dragging the time-slider moves both charts'
+markers together with a matching live readout from both engines; zero console errors on a
+fresh load. `tests/test_visualization_export.py` covers the one part of this that's
+meaningfully unit-testable without a browser — the export script's data layer — checking the
+graph against the model's real CURIEs/edges (not hardcoded expectations that could drift from
+the source) and both engines' exported trajectories for non-negative, equal-length series.
+
+**Not done:** Escher, Simularium, and VTK.js renderers — there's no volumetric-field or
+spatial/agent-based Cradle output yet for them to visualize (Phase 9's E-Cell4 output is
+particle positions over time, not yet exported here), so adding them now would mean building
+against placeholder data. Same "don't build against nothing real" rule Phases 5/7/8 already
+applied to their own deferred pieces.
 
 ## Phase 11 — Lab-facing interface & orchestration
 

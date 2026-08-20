@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Cradle — Repressilator Explorer</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/molstar@5.11.0/build/viewer/molstar.css" />
+<script src="https://cdn.jsdelivr.net/npm/molstar@5.11.0/build/viewer/molstar.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header>
+  <h1>Cradle — Repressilator Explorer</h1>
+  <p>
+    Phase 10 scale-router: a regulatory-network view (pathway scale) linked to real
+    AlphaFold structures (molecular scale) of the same three proteins, plus two independent
+    simulation runs compared under one shared time-slider. Every node, edge, and structure
+    here is real data already validated in Phases 1–4 — nothing on this page is synthetic.
+  </p>
+</header>
+
+<main>
+  <section id="scale-panel">
+    <div class="panel" id="network-panel">
+      <h2>Pathway scale — regulatory network</h2>
+      <p class="hint">Click a protein to load its real AlphaFold structure on the right.</p>
+      <div id="cy"></div>
+    </div>
+    <div class="panel" id="structure-panel">
+      <h2>Molecular scale — <span id="structure-title">select a protein</span></h2>
+      <div id="molstar-app"></div>
+      <p id="structure-note" class="hint"></p>
+    </div>
+  </section>
+
+  <section id="comparison-panel">
+    <h2>Comparing two simulation runs — one shared time-slider</h2>
+    <p class="hint">
+      The same published <code>repressilator.omex</code> archive (Phase 4), run on two
+      independently registered adapters (Phase 2). Drag the slider; both charts move together.
+    </p>
+    <div class="charts">
+      <div class="chart-block">
+        <h3>Tellurium</h3>
+        <svg id="chart-tellurium" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="chart-block">
+        <h3>COPASI</h3>
+        <svg id="chart-copasi" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
+      </div>
+    </div>
+    <input type="range" id="time-slider" min="0" max="0" value="0" step="1" />
+    <p id="time-readout" class="hint"></p>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
