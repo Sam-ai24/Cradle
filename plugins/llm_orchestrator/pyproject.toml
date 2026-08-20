@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-llm-orchestrator"
+version = "0.0.0"
+description = "LLM orchestration/reasoning adapter for Cradle (Claude, OpenRouter — via LiteLLM). Entirely optional; requires the researcher's own API key."
+requires-python = ">=3.11"
+dependencies = ["cradle-core", "litellm"]
+
+[project.entry-points."cradle.ai_model_adapters"]
+claude = "llm_orchestrator.claude:build_adapter"
+openrouter = "llm_orchestrator.openrouter:build_adapter"
+
+[tool.setuptools.packages.find]
+where = ["src"]

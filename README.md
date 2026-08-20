@@ -64,8 +64,16 @@ check to pass and at least 2 independent adapters to agree; published to
 the repo). Both registered adapters reproduce the sustained oscillation from that published
 archive alone, loaded fresh from disk.
 
-See `docs/ROADMAP.md` for what's next (Phase 5: the AI layer — Geneformer, Evo2, OpenFold,
-TranscriptFormer as typed adapters, Claude as the orchestration layer via MCP tool-calling).
+**Phase 5 (AI layer) — in progress.** The orchestration contract is done and real:
+`claude` and `openrouter` adapters (`plugins/llm_orchestrator/`), both via LiteLLM, both
+entirely optional. Neither requires a key to install or for the rest of Cradle to work —
+without one, `cradle.ai.get_orchestrator()` and the conformance runner report a clear,
+actionable "not configured" message (which env var, where to get a key) rather than a
+failure or a silent no-op. Set `ANTHROPIC_API_KEY` and/or `OPENROUTER_API_KEY` (and
+optionally `CRADLE_CLAUDE_MODEL` / `CRADLE_OPENROUTER_MODEL` to pick a specific model) to
+turn either on. The embedding/sequence/structure/perturbation contracts (Geneformer, Evo2,
+OpenFold, TranscriptFormer) are not yet built — see `docs/ROADMAP.md` for why that's a
+separate, larger increment rather than a stub.
 
 ## Getting started (local dev)
 
@@ -77,11 +85,17 @@ pip install -e ".[dev,demo]" \
   -e plugins/tellurium_sim -e plugins/copasi_sim -e plugins/cobrapy_fba \
   -e plugins/uniprot_data -e plugins/pdb_data -e plugins/alphafold_data \
   -e plugins/reactome_data -e plugins/biomodels_data -e plugins/string_data \
-  -e plugins/biogrid_data -e plugins/cellxgene_data -e plugins/kegg_data
+  -e plugins/biogrid_data -e plugins/cellxgene_data -e plugins/kegg_data \
+  -e plugins/llm_orchestrator
 
 cradle-conformance   # discovers + verifies every registered plugin (live network calls)
-pytest -q            # same checks, plus the Phase 1/2/3 substrate + adapter + knowledge tests
+pytest -q            # same checks, plus the Phase 1-5 substrate + adapter + knowledge + AI tests
 ```
+
+The `llm_orchestrator` plugin needs no key to install — without one, both adapters report
+a clear "not configured" skip. To actually use AI orchestration, set `ANTHROPIC_API_KEY`
+and/or `OPENROUTER_API_KEY` yourself (get one from Anthropic's console or openrouter.ai);
+Cradle never ships or assumes a key of its own.
 
 Optional, for full coverage: `CRADLE_BIOGRID_API_KEY=<your key>` (free registration at
 webservice.thebiogrid.org) and `CRADLE_LICENSE_ACK_KEGG=1` (only after reading NOTICE.md's

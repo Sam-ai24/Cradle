@@ -167,7 +167,7 @@ curation record — real files checked into the repo, not a temp-dir artifact) v
 published archive from disk — not a freshly rebuilt copy — and reproduces the oscillation
 on both registered adapters independently, satisfying the exit criterion literally.
 
-## Phase 5 — AI layer v1
+## Phase 5 — AI layer v1 — 🟡 in progress (orchestration done 2026-08-20; embedding/sequence/structure/perturbation not yet built)
 
 - Implement the 5 typed AI contracts (embedding, perturbation, sequence, structure,
   orchestration) as containerized, versioned adapters. **Note:** the perturbation contract
@@ -182,6 +182,32 @@ on both registered adapters independently, satisfying the exit criterion literal
 **Exit criterion:** the orchestration agent can, given a natural-language question about
 the Phase 4 model, call the embedding/structure contracts as tools and return an answer
 with correct tool-call provenance logged.
+
+**Orchestration contract — done and real, not scaffolded.** `plugins/llm_orchestrator/`
+registers two independently swappable adapters, `claude` and `openrouter`, both backed by
+**LiteLLM** exactly as planned — one class (`LiteLLMOrchestrationAdapter`), two thin named
+instances, matching the same "same contract, two parallel registered adapters" pattern
+Phase 2 used for Tellurium/COPASI. AI orchestration is **entirely optional**: every other
+Cradle capability (simulation, data connectors, curation) already works with zero AI
+adapters configured, and this had to be true in practice, not just in a README claim — this
+session has no `ANTHROPIC_API_KEY`/`OPENROUTER_API_KEY` set at all, so every test in
+`tests/test_llm_orchestrator.py` runs the real "no key" path: each adapter checks for its
+key *before* touching the network (proven by monkeypatching `litellm.completion` to fail
+the test if it's ever called without one) and raises `NotConfiguredError` with the exact
+env var and signup URL to fix it — the same skip-not-fail mechanism BioGRID (Phase 3) and
+KEGG's license gate already established. `cradle.ai.get_orchestrator()` is the single entry
+point a researcher or the future orchestrator-as-tool-caller would actually use: it returns
+whichever configured provider is available (or the preferred one, if both are), and if
+neither is configured, lists every option and how to enable it in one message instead of a
+stack trace from whichever adapter happened to be tried first.
+
+**Not yet built:** the embedding (Geneformer), sequence (Evo2), structure (OpenFold), and
+perturbation (TranscriptFormer) contracts. These need substantial model weights and, for
+Evo2/OpenFold in particular, real GPU-relevant compute — a materially larger and more
+resource-intensive undertaking than anything built so far, deliberately not rushed to a
+fake/stub state just to mark this phase fully done. The typed contract for each already
+exists (`cradle.contracts.ai_model_adapter`, Architecture Layer 5); implementing them is the
+next real increment of this phase, not a new phase.
 
 ## Phase 6 — Uncertainty & credibility hardening
 

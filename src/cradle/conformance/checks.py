@@ -136,7 +136,19 @@ def check_simulation_adapter(instance: Any) -> None:
 def check_ai_model_adapter(instance: Any) -> None:
     if not isinstance(instance, AIModelAdapter):
         raise ConformanceError(f"{instance!r} does not implement AIModelAdapter")
-    prediction = instance.predict({"probe": True})
+
+    # The orchestration contract's input shape is a task description, not
+    # the generic embedding-style probe payload other contract types use.
+    # If no API key is configured this raises NotConfiguredError, which
+    # propagates to the caller as a skip (see cli.py / test_conformance.py)
+    # rather than a failure — orchestration is optional by design.
+    contract_type = getattr(instance, "contract_type", None)
+    probe_input = (
+        {"task": "Reply with exactly one word: pong"}
+        if contract_type == "orchestration"
+        else {"probe": True}
+    )
+    prediction = instance.predict(probe_input)
     for key in ("output", "provenance"):
         if key not in prediction:
             raise ConformanceError(f"{instance.name} predict() result missing '{key}'")
