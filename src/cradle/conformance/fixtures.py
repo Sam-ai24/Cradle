@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from cradle.md import BondSpec, IntegratorSpec, MDManifest, NonbondedSpec, ParticleSpec, write_manifest
 from cradle.substrate import archive, experiment, model
 from cradle.substrate.examples import toy_fba
 from cradle.substrate.examples.toggle_switch import build_annotated_document
@@ -43,3 +44,33 @@ def build_reference_fba_sbml(destination_dir: str) -> str:
     `input_mode = "fba_sbml"`.
     """
     return toy_fba.write_sbml(str(Path(destination_dir) / "toy_fba.xml"))
+
+
+#: A tiny coarse-grained bead-spring chain — the reference fixture for any
+#: SimulationAdapter declaring `input_mode = "md_manifest"`. Short enough
+#: (2000 steps) to conformance-test quickly; too short to expect tight
+#: thermal equilibration, which is what the dedicated correctness test
+#: (not this conformance fixture) checks over a longer run.
+REFERENCE_MD_PARTICLE_COUNT = 4
+
+
+def build_reference_md_manifest(destination_dir: str) -> str:
+    manifest = MDManifest(
+        particles=[
+            ParticleSpec(mass_amu=12.0, position_nm=(i * 0.5, 0.0, 0.0))
+            for i in range(REFERENCE_MD_PARTICLE_COUNT)
+        ],
+        bonds=[
+            BondSpec(particle_i=i, particle_j=i + 1, length_nm=0.5, force_constant_kj_per_nm2=500.0)
+            for i in range(REFERENCE_MD_PARTICLE_COUNT - 1)
+        ],
+        nonbonded=NonbondedSpec(sigma_nm=0.4, epsilon_kj_per_mol=0.5),
+        integrator=IntegratorSpec(
+            kind="langevin_middle", temperature_k=300.0, friction_per_ps=1.0, timestep_ps=0.002
+        ),
+        n_steps=2000,
+        report_interval=200,
+    )
+    path = str(Path(destination_dir) / "md_manifest.json")
+    write_manifest(manifest, path)
+    return path

@@ -87,8 +87,20 @@ an explicit decision on whether this repo goes public, is what's blocking an act
 release. The VCBench benchmark bullet is explicitly deferred, not skipped: there's nothing
 to benchmark until Phase 5's embedding/perturbation models exist.
 
-See `docs/ROADMAP.md` for what's next (finishing Phase 5's AI layer, or Phase 7's
-molecular/regulatory tiers).
+**Phase 7 (molecular & regulatory tiers) — 3/4 done.** MD/coarse-grained (`plugins/openmm_md/`)
+runs a real Langevin-thermostatted toy chain that equilibrates to its target temperature,
+with full trajectories in a real H5MD file. Network inference (`plugins/grn_inference/`)
+implements GRNBoost2's actual algorithm directly via scikit-learn after confirming
+`arboreto`'s reference implementation is broken against current `dask` — validated against
+synthetic ground truth (real driver, decoy, and noise genes, correctly ranked). SBML `qual`
+Boolean-network execution (`plugins/boolean_qual_sim/`) needed no GINsim/BoolNet dependency
+— two real bugs (an SBML attribute-ordering gotcha, a libsbml object-lifetime bug) got
+caught and fixed along the way. Molecular interaction/docking is explicitly deferred:
+AutoDock Vina needs Boost and has no Windows wheel, confirmed by a direct attempt, not
+assumed — same footing as Phase 5's deferred heavy models.
+
+See `docs/ROADMAP.md` for what's next (finishing Phase 5's AI layer, Phase 7's docking
+contract, or Phase 8's intervention validation).
 
 ## Getting started (local dev)
 

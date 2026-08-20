@@ -52,7 +52,7 @@ Cradle's own spatial-archive format.
 
 | Tool | Embeddable | Model class | License | Maintenance (Aug 2026) | Link |
 |---|---|---|---|---|---|
-| OpenMM | Yes, native Python API (System/Integrator/Context objects) | Atomistic + coarse-grained (MARTINI-compatible) MD, GPU-accelerated | MIT/LGPL | Active, 8.5.1 (Apr 2026) | github.com/openmm |
+| OpenMM | Yes, native Python API (System/Integrator/Context objects) | Atomistic + coarse-grained (MARTINI-compatible) MD, GPU-accelerated | MIT/LGPL | **Implemented** (`plugins/openmm_md/`) — Green, installs cleanly on Windows, no build toolchain needed | github.com/openmm |
 | GROMACS (gmxapi) | Python API orchestrates GROMACS processes, not in-process | Atomistic + coarse-grained MD | LGPLv2.1+ | Very active | gromacs.org |
 | LAMMPS | Yes, Python wrapper | Atomistic + coarse-grained/mesoscale, mainly materials-science-rooted | GPLv2 | Active | lammps.org |
 | NAMD | Yes (scriptable), but license-restricted | Atomistic MD | **Non-commercial-use-only (UIUC)** | Active | ks.uiuc.edu/Research/namd |
@@ -124,12 +124,13 @@ doesn't). Cradle's scale-router is custom, modeled on Vitessce's linked-view pat
 | CZI rBio, GREmLN | Reasoning / GRN | Via CZI Virtual Cells Platform | Check per-model | Review before use — VCP is a curated hub, not an enforced API |
 | Claude (via MCP) | Reasoning/orchestration | — | Anthropic API terms | Used as orchestrator, not a biology-math engine |
 | LiteLLM | Provider gateway for the orchestration layer | MIT | — | **Green — adopt directly** |
-| pySCENIC + GRNBoost2 | Network inference | GPL-3.0+ / BSD-3 | Open | **Green — default, isolate GPL half** |
+| pySCENIC + GRNBoost2 (`arboreto`) | Network inference | GPL-3.0+ / BSD-3 | Open | **Red flag (Aug 2026) — confirmed broken against current `dask`/`distributed` by direct install+run: `TypeError: Must supply at least one delayed object`. Not merely stale; do not build on it without pinning a compatible dask stack.** |
+| GRNBoost2 algorithm, reimplemented directly (scikit-learn) | Network inference | BSD-3 (scikit-learn) | Open | **Green — Cradle's actual default** (`plugins/grn_inference/`), same algorithm without arboreto's broken orchestration layer |
 | SCENIC+ | Network inference | Custom, non-commercial academic only | Gated | **Red flag — second wave** |
 | CellOracle | Perturbation (mechanistic GRN-based) | Modified Apache-2.0, non-commercial academic only | Gated | **Red flag — second wave, contact Morris Lab for commercial** |
-| OpenFold3 | Molecular interaction (co-folding: protein/nucleic-acid/ligand complexes) | Apache-2.0 | Open | **Green — default** |
-| Boltz-2 | Molecular interaction (structure + binding affinity, joint) | MIT | Open, commercial-cleared | **Green — default** |
-| AutoDock Vina (Smina as fork option) | Molecular interaction (classical docking) | Apache-2.0 | Open | **Green — default, fast/GPU-free** |
+| OpenFold3 | Molecular interaction (co-folding: protein/nucleic-acid/ligand complexes) | Apache-2.0 | Open | Green — default candidate, not yet implemented (deferred, see docs/ROADMAP.md Phase 7) |
+| Boltz-2 | Molecular interaction (structure + binding affinity, joint) | MIT | Open, commercial-cleared | Green — default candidate, not yet implemented |
+| AutoDock Vina (Smina as fork option) | Molecular interaction (classical docking) | Apache-2.0 | Open | **Yellow (Aug 2026, Windows) — the `vina` PyPI package requires Boost and has no prebuilt Windows wheel, confirmed by direct install attempt (`ValueError: Boost library location was not found!`). License/algorithm are still fine; this is a platform-specific build gap, not a license or design problem.** |
 | AlphaFold-Multimer | Molecular interaction (complex structure) | Apache-2.0 (code) | **CC BY-NC 4.0 — non-commercial only** | **Red flag — gate, use OpenFold3 instead** |
 | HADDOCK | Molecular interaction (protein-protein docking) | Free non-profit only | **Paid Accelrys license for commercial** | **Red flag — gate** |
 | DiffDock / DiffDock-PP | Molecular interaction (diffusion-based pose sampling) | MIT | Open | Green — optional secondary adapter |

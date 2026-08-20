@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-boolean-qual-sim"
+version = "0.0.0"
+description = "SBML-qual Boolean/qualitative gene-regulatory-network simulation adapter for Cradle (synchronous update; no external engine dependency)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core"]
+
+[project.entry-points."cradle.simulation_adapters"]
+boolean-qual = "boolean_qual_sim.adapter:BooleanQualSimulationAdapter"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -263,7 +263,7 @@ Zenodo DOI minting requires a connected public GitHub repo, which is a bigger, m
 step than anything done under the "keep everything local" instruction so far. Tagging a
 release with placeholder citation metadata would contradict the point of this phase.
 
-## Phase 7 — Molecular & regulatory tiers
+## Phase 7 — Molecular & regulatory tiers — 🟡 3/4 done (2026-08-20)
 
 Added after re-checking the roadmap against the project's full mission statement — gene
 regulation and molecular interaction were previously only implicit, and a molecular-
@@ -291,6 +291,54 @@ dynamics tier was missing entirely.
 coarse-grained MD run on a toy membrane/protein system, a GRN inferred from a toy
 expression matrix and checked against a RegulonDB-known interaction, and a docking
 prediction for a toy ligand-protein pair with a plausible pose and affinity score.
+
+**MD tier — done.** `cradle.md` defines the manifest (particles/bonds/nonbonded/integrator)
+and a real H5MD writer/reader, checked directly against the H5MD spec
+(h5md.nongnu.org) rather than assumed. `plugins/openmm_md/` runs a coarse-grained
+bead-spring chain via OpenMM and reports scalar diagnostics (potential/kinetic energy,
+instantaneous temperature via equipartition) alongside the full trajectory in H5MD —
+particle positions don't fit the scalar `trajectories` shape, so they go to the H5MD file
+instead of being forced into it. Verified against real physics, not just checked for
+output shape: a Langevin-thermostatted toy chain equilibrates to within 15% of its 300 K
+target (`tests/test_openmm_adapter.py`).
+
+**Network inference — done, with a real substitution.** `arboreto`/GRNBoost2 — this
+roadmap's originally planned default — is **confirmed broken** against current
+`dask`/`distributed` (`TypeError: Must supply at least one delayed object`), not merely
+stale as flagged from research alone. `plugins/grn_inference/` implements the same
+algorithm directly (per-target gradient-boosted regression + feature-importance ranking)
+via scikit-learn instead. Validated against synthetic ground truth: a real driver TF, a
+decoy TF correlated with nothing, and a noise gene — the adapter correctly ranks the real
+edges far above the decoy's and correctly reports low R² for the noise gene rather than
+mistaking a coin-flip importance split for a real edge (`tests/test_grn_inference.py`).
+Added **CollecTRI** (via OmniPath's REST API) as a Layer 6 curated-network connector —
+**RegulonDB deferred**: its API has moved to GraphQL with no simple queryable REST endpoint
+found in a reasonable search, unlike CollecTRI's genuinely tractable REST access.
+
+**SBML `qual` — done, without GINsim/BoolNet.** `cradle.qual` reads SBML `qual` models
+(species, transitions, functionTerms) and evaluates their MathML conditions directly — a
+real recursive AST evaluator (relational + logical ops), not a hardcoded special case —
+then executes synchronous Boolean-network updates as Cradle's own adapter
+(`plugins/boolean_qual_sim/`), avoiding a second-language runtime (Java for GINsim, R for
+BoolNet) for a genuinely simple update rule. Two real bugs surfaced and got fixed while
+building this: `setPackageRequired()` is silently a no-op if called before
+`enablePackage()`, and function-term `ASTNode`s become dangling pointers once the parsing
+`SBMLDocument` goes out of scope unless explicitly `.deepCopy()`'d — both caught only
+because the correctness tests actually execute the model rather than just checking its
+shape. Verified against two independently provable dynamical facts about the same mutual-
+repression network: it period-2-oscillates from a symmetric start and sits at a fixed
+point from an asymmetric one (`tests/test_boolean_qual_adapter.py`).
+
+**Molecular interaction predictor — not done, and correctly blocked, not faked.**
+AutoDock Vina's Python bindings require Boost and have no prebuilt wheel for this
+platform — confirmed by a direct install attempt (`ValueError: Boost library location was
+not found!`), not assumed from documentation. Building it would mean either compiling from
+source against Boost or trusting a downloaded precompiled binary plus a separate molecule-
+preparation toolchain (OpenBabel/Meeko) — a materially bigger, more fragile undertaking
+than anything else in this phase, on the same footing as Evo2/OpenFold/TranscriptFormer's
+deferral in Phase 5. The typed contract itself (multi-entity input, ranked poses + interface
+confidence + affinity output) is already specified in `docs/ARCHITECTURE.md`'s Layer 5
+table; only the implementation is missing.
 
 ## Phase 8 — Intervention validation & perturbation-contract extension
 

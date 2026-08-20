@@ -120,6 +120,44 @@ def _check_fba_sbml_simulation_adapter(instance: Any) -> None:
         raise ConformanceError(f"{instance.name} run() returned no flux values")
 
 
+def _check_md_manifest_simulation_adapter(instance: Any) -> None:
+    """Conformance check for molecular-dynamics/coarse-grained adapters
+    (`input_mode = "md_manifest"`) — no BioSimulators-equivalent contract
+    exists for MD, so this consumes Cradle's own `cradle.md.MDManifest`
+    rather than a COMBINE archive (Architecture, Layer 4's third
+    execution tier).
+    """
+    from cradle.conformance.fixtures import build_reference_md_manifest
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        manifest_path = build_reference_md_manifest(tmp_dir)
+        result = instance.run({"manifest_path": manifest_path}, {})
+
+    for key in ("t", "trajectories", "engine"):
+        if key not in result:
+            raise ConformanceError(f"{instance.name} run() result missing '{key}'")
+    if not result["trajectories"]:
+        raise ConformanceError(f"{instance.name} run() returned no diagnostic trajectories")
+
+
+def _check_qual_sbml_simulation_adapter(instance: Any) -> None:
+    """Conformance check for Boolean/qualitative adapters
+    (`input_mode = "qual_sbml"`) — a discrete-level regulatory model has
+    neither a continuous time axis nor a COMBINE archive to run.
+    """
+    from cradle.substrate.examples.boolean_toggle import write_sbml
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        sbml_path = write_sbml(f"{tmp_dir}/boolean_toggle.xml")
+        result = instance.run({"sbml_path": sbml_path}, {"n_steps": 4})
+
+    for key in ("t", "trajectories", "engine"):
+        if key not in result:
+            raise ConformanceError(f"{instance.name} run() result missing '{key}'")
+    if not result["trajectories"]:
+        raise ConformanceError(f"{instance.name} run() returned no species trajectories")
+
+
 def check_simulation_adapter(instance: Any) -> None:
     if not isinstance(instance, SimulationAdapter):
         raise ConformanceError(f"{instance!r} does not implement SimulationAdapter")
@@ -129,6 +167,10 @@ def check_simulation_adapter(instance: Any) -> None:
         _check_combine_archive_simulation_adapter(instance)
     elif input_mode == "fba_sbml":
         _check_fba_sbml_simulation_adapter(instance)
+    elif input_mode == "md_manifest":
+        _check_md_manifest_simulation_adapter(instance)
+    elif input_mode == "qual_sbml":
+        _check_qual_sbml_simulation_adapter(instance)
     else:
         _check_toy_simulation_adapter(instance)
 
@@ -137,17 +179,28 @@ def check_ai_model_adapter(instance: Any) -> None:
     if not isinstance(instance, AIModelAdapter):
         raise ConformanceError(f"{instance!r} does not implement AIModelAdapter")
 
-    # The orchestration contract's input shape is a task description, not
-    # the generic embedding-style probe payload other contract types use.
-    # If no API key is configured this raises NotConfiguredError, which
-    # propagates to the caller as a skip (see cli.py / test_conformance.py)
+    # Each contract type has a genuinely different input shape (Architecture,
+    # Layer 5: typed contracts, not one generic interface). If no API key is
+    # configured for "orchestration", predict() raises NotConfiguredError,
+    # which propagates to the caller as a skip (see cli.py / test_conformance.py)
     # rather than a failure — orchestration is optional by design.
     contract_type = getattr(instance, "contract_type", None)
-    probe_input = (
-        {"task": "Reply with exactly one word: pong"}
-        if contract_type == "orchestration"
-        else {"probe": True}
-    )
+    if contract_type == "orchestration":
+        probe_input = {"task": "Reply with exactly one word: pong"}
+    elif contract_type == "network_inference":
+        # Two candidate regulators, one real target driven by the first —
+        # trivial, but enough to exercise the actual regression/ranking path
+        # rather than a degenerate single-feature case.
+        probe_input = {
+            "expression": {
+                "reg_a": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+                "reg_b": [4.0, 3.0, 5.0, 2.0, 6.0, 1.0, 7.0, 0.0],
+                "target": [0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0],
+            },
+            "candidate_regulators": ["reg_a", "reg_b"],
+        }
+    else:
+        probe_input = {"probe": True}
     prediction = instance.predict(probe_input)
     for key in ("output", "provenance"):
         if key not in prediction:

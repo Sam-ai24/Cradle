@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-collectri-data"
+version = "0.0.0"
+description = "CollecTRI curated transcription-factor regulatory network connector for Cradle (via OmniPath)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core"]
+
+[project.entry-points."cradle.data_connectors"]
+collectri = "collectri_data.connector:CollecTRIConnector"
+
+[tool.setuptools.packages.find]
+where = ["src"]

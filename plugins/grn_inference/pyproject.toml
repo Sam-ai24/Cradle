@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-grn-inference"
+version = "0.0.0"
+description = "Gene-regulatory-network inference adapter for Cradle (GRNBoost2-style gradient-boosted regression, via scikit-learn)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core", "scikit-learn>=1.3", "numpy>=1.26"]
+
+[project.entry-points."cradle.ai_model_adapters"]
+grnboost2-style = "grn_inference.adapter:GradientBoostingNetworkInferenceAdapter"
+
+[tool.setuptools.packages.find]
+where = ["src"]

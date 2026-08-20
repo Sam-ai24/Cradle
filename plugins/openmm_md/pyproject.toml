@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-openmm-md"
+version = "0.0.0"
+description = "OpenMM molecular-dynamics/coarse-grained simulation adapter for Cradle."
+requires-python = ">=3.11"
+dependencies = ["cradle-core", "openmm>=8.0"]
+
+[project.entry-points."cradle.simulation_adapters"]
+openmm = "openmm_md.adapter:OpenMMSimulationAdapter"
+
+[tool.setuptools.packages.find]
+where = ["src"]
