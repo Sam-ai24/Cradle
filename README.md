@@ -54,9 +54,18 @@ skip, not a failure. `cradle.knowledge.router.resolve_all()` fans one query out 
 every connector that accepts it; verified live against TP53 (`uniprot:P04637`), which
 resolves across 5 real sources at once, each CURIE-linked and source-attributed.
 
-See `docs/ROADMAP.md` for what's next (Phase 4: the first fully validated model — likely
-*E. coli* core carbon metabolism — built and curated end to end through everything Phases
-1-3 established).
+**Phase 4 (first real validated model) — done.** Cradle's first curated model:
+the Elowitz & Leibler (2000) Repressilator, ingested live from BioModels
+(`BIOMD0000000012`) rather than hand-authored — and found a real gap by Cradle's own
+stricter rule (16 unannotated parameters in an otherwise-curated source), closed before
+promotion. `cradle.curation.promote_to_curated()` mechanically requires every evidence
+check to pass and at least 2 independent adapters to agree; published to
+`models/repressilator/` (SBML + SED-ML + COMBINE archive + curation record, real files in
+the repo). Both registered adapters reproduce the sustained oscillation from that published
+archive alone, loaded fresh from disk.
+
+See `docs/ROADMAP.md` for what's next (Phase 5: the AI layer — Geneformer, Evo2, OpenFold,
+TranscriptFormer as typed adapters, Claude as the orchestration layer via MCP tool-calling).
 
 ## Getting started (local dev)
 

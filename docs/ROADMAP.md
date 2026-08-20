@@ -126,7 +126,7 @@ whether Cradle has a connector for its namespace. The BioModels connector's live
 already annotated the toggle switch with — including confirming its PubMed ID
 (10659857), not previously double-checked.
 
-## Phase 4 — First real validated model
+## Phase 4 — First real validated model — ✅ done (2026-08-20)
 
 - Pick one small, extremely well-characterized subsystem — recommend *E. coli* core carbon
   metabolism or a single well-studied signaling pathway already in BioModels as a curated
@@ -141,6 +141,31 @@ already annotated the toggle switch with — including confirming its PubMed ID
 **Exit criterion:** an external reviewer (or you, cold, a week later) can take the
 published archive, re-run it on a different registered adapter, and reproduce the
 original result without additional input.
+
+**Met.** Chose the signaling-pathway path over metabolism: the Elowitz & Leibler (2000)
+Repressilator, curated in BioModels as `BIOMD0000000012` — a real independently-curated
+entry, not hand-authored like Phase 1's toggle switch. `cradle.substrate.examples.repressilator`
+downloads the live SBML via Phase 3's `cradle.knowledge.http` and found a genuine gap:
+BioModels annotated every species and reaction but left all 16 kinetic parameters
+unannotated — a real failure by Cradle's own stricter Layer 8 rule that BioModels'
+"curated" tier doesn't itself check. Closed by tracing each parameter back to the same
+curated record before re-validating with `require_entity_annotations`.
+
+Added `cradle.curation` — `promote_to_curated()` mechanically refuses to mark anything
+"curated" unless every named evidence check passed *and* at least 2 independent adapters
+reproduced it (`tests/test_curation.py` proves the refusal path, not just the happy path).
+For an oscillator, point-by-point trajectory agreement between two solvers is the wrong
+test — phase drift accumulates over many periods even between two numerically-correct
+integrators — so `cradle.analysis` validates on peak count and amplitude range instead,
+which are phase-invariant. Tellurium and COPASI agree to <1%: both report 9 oscillation
+peaks over t=0-1000 and a peak amplitude of ~2368 model units, matching the published
+"sustained oscillations" behavior.
+
+Published to `models/repressilator/` (SBML, SED-ML, the COMBINE archive, and the
+curation record — real files checked into the repo, not a temp-dir artifact) via
+`scripts/curate_repressilator.py`. `tests/test_repressilator_curation.py` loads that
+published archive from disk — not a freshly rebuilt copy — and reproduces the oscillation
+on both registered adapters independently, satisfying the exit criterion literally.
 
 ## Phase 5 — AI layer v1
 

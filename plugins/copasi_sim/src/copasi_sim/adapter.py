@@ -43,9 +43,18 @@ class CopasiSimulationAdapter:
                 model=copasi_model,
                 method="deterministic",
             )
+            # basico's dataframe is column-indexed by COPASI's display name,
+            # which is the SBML `name` attribute when set (not necessarily
+            # the `id` SED-ML targets reference) — e.g. species "PX" with
+            # name "LacI protein" shows up as column "LacI protein". Map
+            # id -> name via COPASI's own species table rather than assume
+            # the two coincide, which only happens to hold for models (like
+            # Phase 1's toggle switch) that never set an explicit name.
+            species_info = basico.get_species(model=copasi_model)
+            name_by_sbml_id = dict(zip(species_info["sbml_id"], species_info.index))
 
         trajectories = {
-            species_id: data_frame[species_id].tolist()
+            species_id: data_frame[name_by_sbml_id[species_id]].tolist()
             for species_id in spec.reported_species_ids
         }
         return {

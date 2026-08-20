@@ -1,0 +1,17 @@
+{
+  "model_curie": "biomodels.db:BIOMD0000000012",
+  "title": "Elowitz2000 - Repressilator",
+  "tier": "curated",
+  "evidence": [
+    "miriam_annotation_complete",
+    "tellurium_shows_sustained_oscillation",
+    "copasi_shows_sustained_oscillation",
+    "tellurium_and_copasi_agree_on_peak_count",
+    "tellurium_and_copasi_agree_on_amplitude_range"
+  ],
+  "adapters_used": [
+    "tellurium",
+    "copasi"
+  ],
+  "verified_at": "2026-08-20T03:04:42.545970+00:00"
+}
