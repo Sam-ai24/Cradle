@@ -7,6 +7,7 @@ import pytest
 from cradle.analysis import amplitude_range, count_local_maxima
 from cradle.curation import read_curation_record
 from cradle.registry import discover
+from cradle.substrate.archive import read_curation_tier
 
 pytest.importorskip("tellurium")
 pytest.importorskip("basico")
@@ -29,6 +30,15 @@ def test_curation_record_reflects_a_real_promotion():
     assert record["model_curie"] == "biomodels.db:BIOMD0000000012"
     assert set(record["adapters_used"]) == {"tellurium", "copasi"}
     assert len(record["evidence"]) >= 4
+
+
+def test_curation_tier_is_embedded_in_the_archive_itself():
+    """Layer 8: the tier has to survive someone copying just the .omex
+    elsewhere — a sidecar curation.json next to it isn't enough.
+    """
+    tier = read_curation_tier(ARCHIVE_PATH)
+    assert tier["tier"] == "curated"
+    assert tier["model_curie"] == "biomodels.db:BIOMD0000000012"
 
 
 @pytest.mark.parametrize("adapter_name", ["tellurium", "copasi"])

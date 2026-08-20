@@ -75,6 +75,21 @@ turn either on. The embedding/sequence/structure/perturbation contracts (Genefor
 OpenFold, TranscriptFormer) are not yet built — see `docs/ROADMAP.md` for why that's a
 separate, larger increment rather than a stub.
 
+**Phase 6 (uncertainty & credibility hardening) — mostly done.** `cradle.estimation` +
+`copasi_sim.estimation.estimate_parameters()` fit a parameter with COPASI and report a
+real confidence interval, verified against a known ground truth (not just checked for
+shape). The curation tier is now embedded *inside* the COMBINE archive itself, not only in
+a sidecar file — a real libcombine bug surfaced and got fixed along the way (see
+`docs/ROADMAP.md`). The knowledge layer now retries transient network failures with
+backoff. FAIR4RS self-assessment is real (`docs/FAIR4RS_ASSESSMENT.md`) and found a
+concrete open item: `CITATION.cff`/`codemeta.json` still need your real name — that, plus
+an explicit decision on whether this repo goes public, is what's blocking an actual tagged
+release. The VCBench benchmark bullet is explicitly deferred, not skipped: there's nothing
+to benchmark until Phase 5's embedding/perturbation models exist.
+
+See `docs/ROADMAP.md` for what's next (finishing Phase 5's AI layer, or Phase 7's
+molecular/regulatory tiers).
+
 ## Getting started (local dev)
 
 ```bash

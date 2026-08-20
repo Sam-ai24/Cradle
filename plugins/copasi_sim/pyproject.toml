@@ -7,7 +7,7 @@ name = "cradle-plugin-copasi-sim"
 version = "0.0.0"
 description = "COPASI simulation adapter for Cradle (parameter estimation, hybrid simulation, profile likelihood)."
 requires-python = ">=3.11"
-dependencies = ["cradle-core", "copasi-basico"]
+dependencies = ["cradle-core", "copasi-basico", "pandas"]
 
 [project.entry-points."cradle.simulation_adapters"]
 copasi = "copasi_sim.adapter:CopasiSimulationAdapter"

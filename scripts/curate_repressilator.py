@@ -96,6 +96,12 @@ def main() -> int:
         adapters_used=["tellurium", "copasi"],
     )
     write_curation_record(record, OUTPUT_DIR / "curation.json")
+
+    # Stamp the tier *inside* the archive too (Architecture, Layer 8) — the
+    # sidecar curation.json above is convenient to read, but the embedded
+    # copy is what survives someone copying just the .omex file elsewhere.
+    archive.embed_curation_tier(archive_path, record.tier, record.model_curie)
+
     print(f"\nPromoted to curated. Archive: {archive_path}")
     return 0
 

@@ -209,7 +209,7 @@ fake/stub state just to mark this phase fully done. The typed contract for each 
 exists (`cradle.contracts.ai_model_adapter`, Architecture Layer 5); implementing them is the
 next real increment of this phase, not a new phase.
 
-## Phase 6 — Uncertainty & credibility hardening
+## Phase 6 — Uncertainty & credibility hardening — 🟡 mostly done (2026-08-20)
 
 - Wire profile-likelihood (COPASI) or SBI/ABC posteriors into every parameter-fitting path
   as a first-class, non-optional output.
@@ -222,6 +222,46 @@ next real increment of this phase, not a new phase.
 **Exit criterion:** every model in the system reports an uncertainty/identifiability
 diagnostic alongside any fitted parameter, and there's a public benchmark number (even a
 mediocre one) for the AI layer.
+
+**Uncertainty — done.** `cradle.estimation` (`ParameterEstimate`/`EstimationReport`) plus
+`copasi_sim.estimation.estimate_parameters()` fits a parameter via COPASI's optimizer and
+reports a Wald-type (Fisher-information/Hessian) confidence interval alongside the fitted
+value — documented honestly as a local approximation, not a full profile-likelihood scan
+(that's a real difference: Wald intervals can mislead for skewed/multimodal likelihoods a
+true profile-likelihood pass would catch). Verified against a genuine ground truth, not
+just checked for output shape: synthetic data generated at the toggle switch's real
+alpha1=156.25, fit starting from a deliberately wrong guess (50), and the reported 95% CI
+correctly contains 156.25 (`tests/test_parameter_estimation.py`).
+
+**Curated/non-curated labeling — done, and hardened further than planned.** Beyond the
+Phase 4 sidecar `curation.json`, the tier is now stamped *inside* the COMBINE archive
+itself (`cradle.substrate.archive.embed_curation_tier`/`read_curation_tier`) — it survives
+someone copying just the `.omex` file elsewhere, which a sidecar file never would. Finding
+this mattered: the first implementation (modify the open `CombineArchive` object in place,
+then `writeToFile`) silently zeroed out every pre-existing entry's content — a real
+libcombine quirk caught by the exit-criterion tests actually re-running the rewritten
+archive, not by a shape check. Fixed by rebuilding from scratch (extract to disk, re-`addFile`
+each entry) — the same proven pattern `package_combine_archive` already used.
+
+**Also hardened, not originally scoped:** `cradle.knowledge.http` now retries transient
+failures (timeouts, connection errors, 5xx) with backoff and raises immediately on a 4xx
+(retrying an identical bad request can't help) — added after a live UniProt timeout
+actually failed a conformance run mid-session, then succeeded seconds later unretried.
+
+**VCBench benchmark — explicitly not done, not silently skipped.** There is nothing
+meaningful to submit: Phase 5 only built the orchestration contract (Claude/OpenRouter via
+LiteLLM), not the embedding/perturbation models VCBench actually evaluates (Geneformer,
+scGPT, UCE, TranscriptFormer, Arc State). Publishing a benchmark number now would mean
+benchmarking nothing. This bullet is blocked on finishing Phase 5's remaining AI contracts,
+not abandoned.
+
+**FAIR4RS self-assessment — done** (`docs/FAIR4RS_ASSESSMENT.md`); **tagged release — not
+done, and correctly blocked**, not forgotten: `CITATION.cff`/`codemeta.json` still carry the
+placeholder author fields set in Phase 0 (real name/affiliation only the researcher can
+supply), and no decision has been made on whether/when this local-only repo goes public —
+Zenodo DOI minting requires a connected public GitHub repo, which is a bigger, more visible
+step than anything done under the "keep everything local" instruction so far. Tagging a
+release with placeholder citation metadata would contradict the point of this phase.
 
 ## Phase 7 — Molecular & regulatory tiers
 
