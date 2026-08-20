@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-perturbation-baselines"
+version = "0.0.0"
+description = "Empirical (real-data-lookup) baseline perturbation adapters for Cradle, one per Phase 8 intervention category. Not trained predictive models - see module docstrings."
+requires-python = ">=3.11"
+dependencies = [
+    "cradle-core",
+    "cradle-plugin-chembl-data",
+    "cradle-plugin-depmap-data",
+    "cradle-plugin-scperturb-data",
+    "cradle-plugin-aging-expression-data",
+]
+
+[project.entry-points."cradle.ai_model_adapters"]
+drug-dose-curve-empirical = "perturbation_baselines.drug_dose_curve:EmpiricalDrugDoseCurveAdapter"
+gene-fitness-empirical = "perturbation_baselines.gene_fitness:EmpiricalGeneFitnessAdapter"
+perturbseq-vector-delta-empirical = "perturbation_baselines.vector_delta:EmpiricalVectorDeltaAdapter"
+aging-trajectory-empirical = "perturbation_baselines.aging_trajectory:EmpiricalAgingTrajectoryAdapter"
+
+[tool.setuptools.packages.find]
+where = ["src"]

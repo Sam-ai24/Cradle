@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-aging-expression-data"
+version = "0.0.0"
+description = "Real age-indexed expression data connector for Cradle (Tabula Muris Senis, via CZ CELLxGENE)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core", "anndata>=0.10", "scipy>=1.11", "numpy>=1.26"]
+
+[project.entry-points."cradle.data_connectors"]
+aging-expression = "aging_expression_data.connector:AgingExpressionConnector"
+
+[tool.setuptools.packages.find]
+where = ["src"]

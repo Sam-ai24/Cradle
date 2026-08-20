@@ -45,6 +45,11 @@ distinction at the connector level (a `training_eligible: false` flag on the rec
 just a comment), since it's easy to violate by accident once the data is cached alongside
 training-eligible sources like scPerturb.
 
+**Implemented, not just planned**: `plugins/depmap_data/` sets `training_eligible: False`
+on every record it returns (Phase 8), and `perturbation_baselines.gene_fitness`'s adapter
+carries the same flag as `usable_for_training = False` — checked directly by
+`tests/test_perturbation_baselines.py`, not merely documented here.
+
 ## AI model weight licensing
 
 - **AlphaFold3** weights are non-commercial-only and forbid training competing models on

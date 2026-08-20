@@ -99,8 +99,19 @@ caught and fixed along the way. Molecular interaction/docking is explicitly defe
 AutoDock Vina needs Boost and has no Windows wheel, confirmed by a direct attempt, not
 assumed — same footing as Phase 5's deferred heavy models.
 
+**Phase 8 (intervention validation) — 3/4 done.** `cradle.perturbation` extends the
+perturbation contract with a `kind` field (vector delta / scalar phenotype / dose curve /
+trajectory), proven additive with a test that the original Phase 5 shape still validates
+unchanged. `plugins/perturbation_baselines/` implements one honest **empirical baseline**
+per kind — real ChEMBL IC50 data (drugs), real DepMap Achilles fitness scores (gene-fitness,
+with a real `training_eligible: False` field enforced, not just documented), real scPerturb
+Perturb-seq data (gene edits — the "too-big" files turned out to have small ones worth
+actually checking), and real Tabula Muris Senis aging data (which honestly does *not* show
+the textbook senescence-marker trend in this tissue slice — reported as found, not massaged).
+Environmental stress (ASTRA) stays blocked: no discoverable REST API.
+
 See `docs/ROADMAP.md` for what's next (finishing Phase 5's AI layer, Phase 7's docking
-contract, or Phase 8's intervention validation).
+contract, or Phase 9's spatial expansion).
 
 ## Getting started (local dev)
 

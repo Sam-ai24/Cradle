@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-chembl-data"
+version = "0.0.0"
+description = "ChEMBL data connector for Cradle (bioactivity/dose-response data, CC BY-SA 3.0)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core"]
+
+[project.entry-points."cradle.data_connectors"]
+chembl = "chembl_data.connector:ChEMBLConnector"
+
+[tool.setuptools.packages.find]
+where = ["src"]

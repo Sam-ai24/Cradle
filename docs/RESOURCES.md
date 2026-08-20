@@ -151,14 +151,14 @@ doesn't). Cradle's scale-router is custom, modeled on Vitessce's linked-view pat
 
 | Category | Resource | Access | License | Contract-shape note |
 |---|---|---|---|---|
-| Drugs | LINCS L1000 / CMap | GEO (GSE92742, GSE70138, GSE106127) or CLUE API | Free academic; commercial needs Broad contact | Needs dose/time axis + curve-shaped output |
-| Drugs | ChEMBL | REST, full bulk | CC BY-SA 3.0 | Dose-response, fully open |
-| Drugs / gene edits | DepMap (Achilles, PRISM) | Portal + bulk | CC BY 4.0 **with explicit no-AI-training carve-out** | ⚠ Eval/benchmark only, never training data; needs scalar-phenotype output |
-| Gene edits | scPerturb | Bulk download, harmonized | Open | **Best fit for existing contract as-is** |
-| Gene edits | CRISPRbrain | Portal | CC BY 4.0 | Adds morphological/functional readouts beyond expression |
-| Environmental stress | ASTRA | Web portal + GitHub/Zenodo bulk | **CC BY-NC 4.0, non-commercial only** | Bulk/pathway-level, not single-cell; needs intensity axis + pathway-summary output; thinnest-covered category |
-| Aging | Tabula Muris Senis | Already in CZ CELLxGENE Census | CC BY 4.0 | Zero new connector work; needs longitudinal/trajectory output |
-| Aging | GenAge (HAGR) | Bulk | Open | Curated reference genes, scoring only — not delta-training data |
+| Drugs | ChEMBL | REST — **implemented** (`plugins/chembl_data/`) | CC BY-SA 3.0 | Real IC50 → Hill-equation `dose_curve`, live-verified |
+| Drugs | LINCS L1000 / CMap | CLUE API returned empty without a registered key; GEO bulk not attempted | Free academic; commercial needs Broad contact | **Deferred, gated like BioGRID** — ChEMBL alone already satisfies the exit criterion for this category |
+| Gene-fitness screens | DepMap Achilles | Bulk CSV (~98MB), direct Figshare URL — **implemented** (`plugins/depmap_data/`) | CC BY 4.0 **with explicit no-AI-training carve-out, enforced as a real `training_eligible: False` field, not just documented** | Real gene-effect scores → `scalar_phenotype`, live-verified |
+| Gene edits | scPerturb | Zenodo REST API for metadata; **implemented for 2 of ~30 files** (`plugins/scperturb_data/`) — most files are 250MB-2.5GB, but the smallest (45-121MB) are genuinely tractable, confirmed by downloading them | CC BY 4.0 (verify per-study terms) | Real Perturb-seq (Dixit&Regev 2016 CRISPR + Aissa&Benevolenskaya 2021 drug) → `vector_delta`, live-verified, including the perturbed gene's own delta |
+| Gene edits | CRISPRbrain | No discoverable REST API in a reasonable search | CC BY 4.0 | Deferred — scPerturb already covers this category |
+| Environmental stress | ASTRA | **No discoverable REST API** — JS SPA shell only at every guessed path | CC BY-NC 4.0, non-commercial only | **Deferred — thinnest-covered category, as predicted when this phase was planned** |
+| Aging | Tabula Muris Senis | Direct H5AD download via CZ CELLxGENE Discover (~69MB for one tissue) — **implemented** (`plugins/aging_expression_data/`) | CC BY 4.0 | Real per-age-group expression → `trajectory`, live-verified; the canonical senescence marker (Cdkn2a) does *not* show a clean monotonic increase in this specific tissue slice — reported honestly, not cherry-picked around |
+| Aging | GenAge (HAGR) | Bulk | Open | Curated reference genes, scoring only — not delta-training data, not implemented |
 | Aging | Digital Ageing Atlas | Bulk | CC BY 3.0 | **Stale since ~2015 — reference only** |
 
 ## Benchmarks to validate against

@@ -340,7 +340,7 @@ deferral in Phase 5. The typed contract itself (multi-entity input, ranked poses
 confidence + affinity output) is already specified in `docs/ARCHITECTURE.md`'s Layer 5
 table; only the implementation is missing.
 
-## Phase 8 — Intervention validation & perturbation-contract extension
+## Phase 8 — Intervention validation & perturbation-contract extension — 🟡 3/4 done (2026-08-20)
 
 Validates the platform against the four intervention types named in the mission statement
 (drugs, gene edits, environmental stress, aging-related damage) — and, in doing so, forces
@@ -367,6 +367,43 @@ shapes real data actually needs.
 **Exit criterion:** at least one real, non-toy case per intervention category runs through
 the extended contract end to end and produces output in the correct shape for that
 category, with the DepMap/ASTRA license gates demonstrably enforced (not just documented).
+
+**Met for three of four categories — with real data throughout, not synthetic stand-ins.**
+`cradle.perturbation` adds the `kind` field (`vector_delta`/`scalar_phenotype`/`dose_curve`/
+`trajectory`) with a real validator (`validate_perturbation_output`) that mechanically
+checks an output actually has its declared kind's required fields — proven additive by a
+dedicated test showing the original Phase 5 `vector_delta` shape validates unchanged.
+`plugins/perturbation_baselines/` implements one **empirical baseline** adapter per kind —
+explicitly *not* trained predictive models, real-data lookups, exactly the kind of
+comparator VCBench itself benchmarks AI models against:
+
+- **Drugs (`dose_curve`)**: real ChEMBL IC50 for aspirin, expanded into the standard
+  Hill-equation sigmoid that value parameterizes. LINCS/CLUE was reachable only with a
+  registered API key (deferred, same BioGRID-style gate) — ChEMBL alone already satisfies
+  the exit criterion for this category.
+- **Gene-fitness screens (`scalar_phenotype`)**: real DepMap Achilles CRISPR gene-effect
+  scores for KRAS across hundreds of cell lines, fetched from a real ~98MB bulk file
+  (`cradle.knowledge.cache` added for exactly this — large one-time downloads, cached
+  locally rather than re-fetched every call). `training_eligible: False` is a real field on
+  every record this connector returns, not a comment — checked directly by a test.
+- **Gene edits (`vector_delta`)**: real Perturb-seq data from scPerturb (Dixit & Regev 2016,
+  a landmark CRISPR knockdown screen), not the multi-GB files originally assumed
+  inaccessible — the *smallest* files in the harmonized collection (46-121MB) turned out to
+  be genuinely tractable, confirmed by actually downloading and reading one rather than
+  estimating from a file listing. The connector reports the CRISPR target gene's own
+  expression delta directly (a real, if modest, knockdown effect on IRF1 itself) rather than
+  hoping it lands in an arbitrary top-N cutoff.
+- **Aging (`trajectory`)**: real Tabula Muris Senis single-cell data (pancreas, Smart-seq2)
+  across four real donor ages (18/21/24/30 months). Checked the canonical senescence marker
+  Cdkn2a directly against real data before writing anything — it does **not** show a clean
+  monotonic increase in this tissue slice (likely confounded by a 51-cell group at 24
+  months). The adapter and its test report this honestly rather than asserting the textbook
+  direction or quietly switching to a different gene until one "worked."
+
+**Environmental stress — not done, correctly blocked.** ASTRA's site is a JS single-page
+app with no discoverable REST endpoint found in a reasonable search (same category of gap
+as RegulonDB in Phase 7) — this remains the thinnest-covered intervention category, exactly
+as flagged when this phase was first planned.
 
 ## Phase 9 — Spatial/multicellular expansion
 

@@ -185,7 +185,15 @@ def check_ai_model_adapter(instance: Any) -> None:
     # which propagates to the caller as a skip (see cli.py / test_conformance.py)
     # rather than a failure — orchestration is optional by design.
     contract_type = getattr(instance, "contract_type", None)
-    if contract_type == "orchestration":
+    conformance_input = getattr(instance, "conformance_input", None)
+    if conformance_input is not None:
+        # Perturbation baselines (Phase 8) each wrap a different real data
+        # source (ChEMBL/DepMap/scPerturb/Tabula Muris Senis) with genuinely
+        # different required input keys even though they share
+        # contract_type="perturbation" — each declares its own real probe
+        # input rather than forcing one dispatch table to know all of them.
+        probe_input = conformance_input
+    elif contract_type == "orchestration":
         probe_input = {"task": "Reply with exactly one word: pong"}
     elif contract_type == "network_inference":
         # Two candidate regulators, one real target driven by the first —

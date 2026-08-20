@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-scperturb-data"
+version = "0.0.0"
+description = "scPerturb data connector for Cradle (real Perturb-seq single-cell perturbation data, harmonized on Zenodo)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core", "anndata>=0.10", "scipy>=1.11", "numpy>=1.26"]
+
+[project.entry-points."cradle.data_connectors"]
+scperturb = "scperturb_data.connector:ScPerturbConnector"
+
+[tool.setuptools.packages.find]
+where = ["src"]
