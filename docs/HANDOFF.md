@@ -53,7 +53,7 @@ AI features (LLM orchestration) are fully optional and degrade gracefully with n
 | 11 — Lab-facing interface | 🟡 3/4 done | `cradle.lab` notebook API + real executed notebook done; Snakemake pipeline runs, CWL written but `cwltool` doesn't run natively on Windows; Docker/Apptainer files written but unbuilt (no Docker/WSL2 here) |
 | 12 — Second-wave AI & governance | 🟡 in progress | ESM-C-300M + Geneformer embedding adapters done (real, license-clean); CONTRIBUTING.md written + exit criterion verified via a fresh agent; 4/6 named second-wave models confirmed blocked/deferred; NAMD/ChimeraX bridge detection layer done, translation layer not attempted |
 
-Full pytest suite as of the last commit: **79 passed, 2 skipped** (unconfigured keys/license
+Full pytest suite as of the last commit: **83 passed, 2 skipped** (unconfigured keys/license
 gates — expected), **0 failed** on a normal run. Live-network tests (conformance, ChEMBL,
 CollecTRI) are known to flake under rate-limiting/transient outages if the full suite is
 re-run repeatedly in a short window, or if a third-party host has a bad moment (an EBI/
@@ -177,6 +177,18 @@ dominates) — don't be alarmed if the suite runs noticeably longer than before.
    `docs/ROADMAP.md`, `README.md`, `docs/LANDSCAPE.md` (marked its embedding recommendation
    partially done — the perturbation contract and an actual public benchmark submission are
    still open), this file, and committed as `0c8cb2b`.
+10. Ran a real, honest benchmark check for that Geneformer adapter
+    (`scripts/geneformer_embedding/run_benchmark.py`): a stratified 292-cell sample from
+    `pbmc3k`, matched by real barcode to `pbmc3k_processed()`'s real published cell-type
+    labels. CZI's `cz-benchmarks`/`scib-metrics` was the first choice for scoring but its
+    `jaxlib` dependency fails to import here (`DLL load failed... Application Control
+    policy` — a real, different Windows blocker) — used plain `sklearn` (silhouette score +
+    5-fold k-NN probe) instead. **Real result: Geneformer's embedding clearly beats PCA (the
+    field's simplest baseline) at separating real cell types** — 88.0% vs. 23.6% k-NN
+    accuracy, silhouette 0.194 vs. -0.004. `tests/test_geneformer_benchmark.py` re-runs the
+    same real comparison and asserts the real margin. Results in
+    `docs/geneformer_benchmark.json`. Updated `docs/ROADMAP.md`, `README.md`,
+    `docs/LANDSCAPE.md`, this file, and committed as `2c096bd`.
 
 ## Pending work, in a reasonable priority order
 
