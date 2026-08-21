@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-perturbation-gears"
+version = "0.1.0"
+description = "Perturbation AI contract adapter for Cradle, backed by a real trained GEARS model (Roman-Rodriguez et al. 2023, MIT license) on the real Norman et al. 2019 Perturb-seq dataset. Requires scripts/perturbation_gears/train_and_evaluate.py to have been run once - see adapter.py's module docstring."
+requires-python = ">=3.11"
+dependencies = [
+    "cradle-core",
+    "cell-gears>=0.1.2",
+    "torch-geometric>=2.6",
+    "torch>=2.0",
+    "scanpy>=1.9",
+]
+
+[project.entry-points."cradle.ai_model_adapters"]
+gears = "perturbation_gears.adapter:build_adapter"
+
+[tool.setuptools.packages.find]
+where = ["src"]
