@@ -1,12 +1,15 @@
 # Cradle — Session Handoff
 
 **Last updated:** 2026-08-21 (Phases 0-10 were built 2026-08-20 in one continuous run;
-Phases 11 and 12 were both built 2026-08-21, in two separate sessions that day).
+Phases 11 and 12, plus a genome-scale validation pass and a strategic landscape review, were
+all built 2026-08-21, across several separate sessions that day).
 
 This file is the single "start here" document for picking the project back up. It doesn't
 duplicate `docs/ROADMAP.md` (the phase-by-phase build plan and detailed exit-criterion
-verdicts) or `README.md` (the project pitch + status summary) — it records what a new
-session needs to *do* next and any operational detail that isn't obvious from the code.
+verdicts), `README.md` (the project pitch + status summary), or `docs/LANDSCAPE.md` (how
+Cradle compares to the real competitive landscape and what "scientific grade" requires) —
+it records what a new session needs to *do* next and any operational detail that isn't
+obvious from the code.
 
 ## What Cradle is (one paragraph)
 
@@ -38,7 +41,7 @@ AI features (LLM orchestration) are fully optional and degrade gracefully with n
 |---|---|---|
 | 0 — Governance & scaffolding | ✅ done | plugin/conformance mechanism, 3 hello-world plugins |
 | 1 — Model & experiment substrate | ✅ done | Antimony→SBML→SED-ML→COMBINE round-trip, toggle switch |
-| 2 — First simulation adapters | ✅ done | Tellurium, COPASI, COBRApy (subprocess-isolated) |
+| 2 — First simulation adapters | ✅ done, validated at real scale 2026-08-21 | Tellurium, COPASI, COBRApy (subprocess-isolated); COBRApy also confirmed correct, unmodified, on a real genome-scale model (iML1515) |
 | 3 — Knowledge/data layer | ✅ done | 7 live connectors + KEGG license gate; BioGRID needs a free key |
 | 4 — First validated model | ✅ done | Repressilator (BIOMD0000000012), published to `models/repressilator/` |
 | 5 — AI layer v1 | 🟡 partial | orchestration (Claude/OpenRouter via LiteLLM) done; embedding/sequence/structure/perturbation models **not built** |
@@ -50,11 +53,15 @@ AI features (LLM orchestration) are fully optional and degrade gracefully with n
 | 11 — Lab-facing interface | 🟡 3/4 done | `cradle.lab` notebook API + real executed notebook done; Snakemake pipeline runs, CWL written but `cwltool` doesn't run natively on Windows; Docker/Apptainer files written but unbuilt (no Docker/WSL2 here) |
 | 12 — Second-wave AI & governance | 🟡 in progress | ESM-C-300M embedding adapter done (real, unblocked after a licensing correction); CONTRIBUTING.md written + exit criterion verified via a fresh agent; 4/6 named second-wave models confirmed blocked/deferred; NAMD/ChimeraX bridge detection layer done, translation layer not attempted |
 
-Full pytest suite as of the last commit: **73 passed, 2 skipped** (unconfigured keys/license
-gates — expected), **0 failed** on a normal run. One live-network conformance test
-(CollecTRI, against omnipathdb.org/reactome.org) is known to flake under rate-limiting if the
-full suite is re-run repeatedly in a short window — unrelated to any Cradle code, and it
-passes on a normal single run.
+Full pytest suite as of the last commit: **77 passed, 2 skipped** (unconfigured keys/license
+gates — expected), **0 failed** on a normal run. Live-network tests (conformance, ChEMBL,
+CollecTRI) are known to flake under rate-limiting/transient outages if the full suite is
+re-run repeatedly in a short window, or if a third-party host has a bad moment (an EBI/
+ChEMBL HTTP 500 was seen live this session) — unrelated to any Cradle code, and everything
+passes on a normal, isolated run. The genome-scale FBA test
+(`tests/test_genome_scale_fba.py`) downloads an ~11MB model on first run (cached after via
+`cradle.knowledge.cache`) and takes ~70-80s per run either way (model parsing, not network,
+dominates) — don't be alarmed if the suite runs noticeably longer than before.
 
 ## What just happened in this session (chronological)
 
@@ -139,8 +146,29 @@ passes on a normal single run.
    Vina's Windows wheel, CompuCell3D's PyPI availability) found both unchanged. Ran the full
    suite (73 passed, 2 skipped, 0 failed), updated `docs/ROADMAP.md`/`README.md`/`Dockerfile`/
    `Apptainer.def`/this file, and committed.
+8. Wrote `docs/LANDSCAPE.md` (real, web-researched comparison against Karr/Covert whole-cell
+   models, CZI's Virtual Cells Platform, Arc Institute's Virtual Cell Challenge,
+   VCell/CompuCell3D/PhysiCell, and single-cell foundation models — see that file for what
+   it found and its own prioritized "what's needed for scientific grade" list). Then, per its
+   own top recommendation, validated the **unmodified** `cobrapy` adapter against a real
+   genome-scale model for the first time: iML1515 (Monk et al. 2017; 2,712 reactions, 1,516
+   genes), fetched live from BiGG and cached via `cradle.knowledge.cache`. Correctly predicts
+   the real ~0.877/h glucose-minimal-media growth rate and correctly classifies real
+   essential (`murA`, `accA`) vs. non-essential (`lacZ`/`lacY`/`araA`) gene knockouts — the
+   same in-silico-vs-real-biology validation style Karr et al. 2012 used. One real, kept
+   (not hidden) nuance: a `folA` knockout is *not* lethal in this model, because of a real,
+   independently documented redundant isozyme (`folM`) the model's own gene-reaction rule
+   already annotates. `worker.py` gained one small, additive, backward-compatible extension
+   (optional gene-knockout arguments) to support this. Updated `docs/ROADMAP.md` (Phase 2
+   addendum), `README.md`, `docs/LANDSCAPE.md` (marked its own scale-demonstration item
+   done), this file, and committed as `b5b4b46`.
 
 ## Pending work, in a reasonable priority order
+
+See also `docs/LANDSCAPE.md`'s own priority list (§5, "where this is realistically headed")
+for the strategic view — genome-scale FBA validation (its #2) is now done; its remaining
+items (a real trained AI model behind an existing contract, the public-release decision, a
+real external user) overlap with and motivate several of the roadmap items below.
 
 1. **Phase 5 remainder** (biggest open gap): implement the embedding (Geneformer), sequence
    (Evo2), structure (OpenFold), and perturbation (TranscriptFormer) AI contracts. This is
@@ -194,7 +222,8 @@ behind each one), not a TODO that was skipped without checking.
 - Use the project's own venv, not a global Python: `.venv/Scripts/python.exe` (Windows;
   this session's global `python` resolves to an unrelated hermes-agent venv without pytest).
 - Full suite: `.venv/Scripts/python.exe -m pytest -q` (or `pytest -q` after activating
-  `.venv`). Takes ~2 minutes; expect `51 passed, 2 skipped`.
+  `.venv`). Takes ~4-5 minutes as of 2026-08-21 (the genome-scale FBA test alone adds
+  ~70-80s); expect `77 passed, 2 skipped`.
 - To view the Phase 10 visualization: `python scripts/export_visualization_data.py` (only
   needed again if `models/repressilator/` changes) then
   `python -m http.server 8743 --directory viz` and open `http://localhost:8743`. Already
@@ -238,16 +267,23 @@ behind each one), not a TODO that was skipped without checking.
 ## Exactly what to tell the next session
 
 > Continue the Cradle project at `C:\Users\bahad\Cradle`. Read `docs/HANDOFF.md` first for
-> full context, then `docs/ROADMAP.md` for phase detail. All 13 roadmap phases (0-12) have
-> now been touched at least once — several are intentionally partial with real, confirmed
-> blockers, not oversights (see the table in HANDOFF.md). Pick a direction: finish Phase 5's
-> remaining AI contracts, Phase 7's docking contract, Phase 8's ASTRA connector, Phase 10's
-> Simularium renderer, Phase 11's container build-and-test on a machine with Docker or WSL2,
-> Phase 12's remaining second-wave models (Arc State is the most promising if there's
-> appetite for a large download), or a fresh Phase 12-style "revisit" pass over earlier
-> phases' engine/tool choices against whatever's changed since. Keep everything local (no
-> Claude Artifacts for this project), verify every claim against a real API/library/dataset
-> before writing it down — including re-checking old assumptions, not just new ones, the way
-> this session found ESM3/ESM-C's license had actually changed — document genuine blockers
-> honestly instead of faking or skipping them, and commit to git at the end of the phase with
-> a detailed message in the same style as the existing commits.
+> full context, then `docs/ROADMAP.md` for phase detail and `docs/LANDSCAPE.md` for the
+> strategic picture (how Cradle compares to Karr/Covert whole-cell models, CZI's Virtual
+> Cells Platform, Arc Institute's Virtual Cell Challenge, and what "scientific grade"
+> actually requires). All 13 roadmap phases (0-12) have now been touched at least once, and
+> one of `docs/LANDSCAPE.md`'s own top recommendations (validate an adapter at real genome
+> scale) is already done (iML1515 via the unmodified COBRApy adapter) — several phases are
+> intentionally partial with real, confirmed blockers, not oversights (see the table in
+> HANDOFF.md). Pick a direction: finish a real trained AI model behind an existing contract
+> (`docs/LANDSCAPE.md`'s top remaining recommendation), Phase 5's remaining AI contracts,
+> Phase 7's docking contract, Phase 8's ASTRA connector, Phase 10's Simularium renderer,
+> Phase 11's container build-and-test on a machine with Docker or WSL2, Phase 12's remaining
+> second-wave models (Arc State is the most promising if there's appetite for a large
+> download), the public-release decision (`docs/LANDSCAPE.md` §3, blocked on you), or a
+> fresh "revisit" pass over earlier phases' engine/tool choices against whatever's changed
+> since. Keep everything local (no Claude Artifacts for this project), verify every claim
+> against a real API/library/dataset before writing it down — including re-checking old
+> assumptions, not just new ones, the way this session found ESM3/ESM-C's license had
+> actually changed — document genuine blockers honestly instead of faking or skipping them,
+> and commit to git at the end of the phase with a detailed message in the same style as the
+> existing commits.
