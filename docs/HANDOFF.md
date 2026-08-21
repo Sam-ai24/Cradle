@@ -1,7 +1,7 @@
 # Cradle — Session Handoff
 
-**Last updated:** 2026-08-21 (Phases 0-10 were built 2026-08-20 in one continuous run; Phase
-11 was built 2026-08-21 in the following session).
+**Last updated:** 2026-08-21 (Phases 0-10 were built 2026-08-20 in one continuous run;
+Phases 11 and 12 were both built 2026-08-21, in two separate sessions that day).
 
 This file is the single "start here" document for picking the project back up. It doesn't
 duplicate `docs/ROADMAP.md` (the phase-by-phase build plan and detailed exit-criterion
@@ -48,12 +48,12 @@ AI features (LLM orchestration) are fully optional and degrade gracefully with n
 | 9 — Spatial/multicellular | ✅ done | E-Cell4 (after CompuCell3D/PhysiCell/Smoldyn all ruled out) |
 | 10 — Visualization | 🟡 core done | Cytoscape.js + Mol* scale-router, 2-way run comparison; Escher/Simularium/VTK.js not built (no data to feed them yet) |
 | 11 — Lab-facing interface | 🟡 3/4 done | `cradle.lab` notebook API + real executed notebook done; Snakemake pipeline runs, CWL written but `cwltool` doesn't run natively on Windows; Docker/Apptainer files written but unbuilt (no Docker/WSL2 here) |
-| 12 — Second-wave AI & governance | ⬜ not started | Arc State/ESM3/AlphaFold3/etc., community contribution process |
+| 12 — Second-wave AI & governance | 🟡 in progress | ESM-C-300M embedding adapter done (real, unblocked after a licensing correction); CONTRIBUTING.md written + exit criterion verified via a fresh agent; 4/6 named second-wave models confirmed blocked/deferred; NAMD/ChimeraX bridge detection layer done, translation layer not attempted |
 
-Full pytest suite as of the last commit: **60 passed, 1 skipped** (an unconfigured key/
-license gate — expected), **0 failed** on a normal run. One live-network conformance test
+Full pytest suite as of the last commit: **73 passed, 2 skipped** (unconfigured keys/license
+gates — expected), **0 failed** on a normal run. One live-network conformance test
 (CollecTRI, against omnipathdb.org/reactome.org) is known to flake under rate-limiting if the
-full suite is re-run repeatedly in a short window — unrelated to Phase 11's changes, and it
+full suite is re-run repeatedly in a short window — unrelated to any Cradle code, and it
 passes on a normal single run.
 
 ## What just happened in this session (chronological)
@@ -106,6 +106,39 @@ passes on a normal single run.
    failed on a clean run — one live-network conformance test flaked under rate-limiting from
    repeated re-runs, unrelated to Phase 11), updated `docs/ROADMAP.md`/`README.md`/this file,
    and committed.
+7. Built Phase 12 (this session, 2026-08-21, same day as Phase 11 but a separate session):
+   checked feasibility of all six roadmap-named second-wave AI/tools directly rather than
+   assumed — **CellOracle** (blocked: `velocyto`→`pysam` needs a Unix build toolchain),
+   **HADDOCK3** (blocked: its `gdock` dependency's Rust extension fails to link with this
+   machine's MSVC), **SCENIC+** (blocked: no PyPI package, unchanged from Phase 7), **Arc
+   State** (installs cleanly, license genuinely is non-commercial, but its embedding
+   checkpoint alone is 2.9-11GB and its more relevant model wants a training-run directory
+   as input — deferred, not rushed), **AlphaFold3/-Multimer** (deferred: AF3 needs a manual
+   DeepMind application regardless of any package, AF-Multimer needs TB-scale genetic
+   databases) — leaving **ESM3/ESM-C**. Checking that one directly (rather than trusting the
+   roadmap's own Phase-5-era assumption) found it's real, buildable: `HfApi().model_info(...)
+   .gated` is `False` and the model's own `LICENSE.md` is plain MIT, contradicting
+   `docs/ARCHITECTURE.md`/`NOTICE.md`'s prior "Cambrian Non-Commercial License" claim for
+   this specific checkpoint — corrected both docs with a dated note. Built
+   `plugins/esmc_embedding/` for real against ESM-C-300M (actual 1.3GB one-time download,
+   ~110s first load/~8s cached, <2s CPU inference), proactively setting
+   `HF_HUB_DISABLE_SYMLINKS=1` to avoid the same Windows-symlink-privilege class of bug Phase
+   11 hit with cwltool. Built `cradle.lab.bridges` for NAMD/ChimeraX — the verifiable part
+   (detect + run a configured executable) real and tested against a real binary (Python
+   itself, standing in for the missing NAMD/ChimeraX); the config-translation part
+   deliberately not attempted since it can't be tested here. Wrote `CONTRIBUTING.md`, then
+   verified Phase 12's own exit criterion for real: launched a genuinely fresh agent with
+   only `CONTRIBUTING.md`/`docs/ARCHITECTURE.md`/the contracts source (no access to any of
+   Cradle's other real plugins) and had it build a new plugin unaided. It succeeded —
+   `plugins/pubchem_data/`, a real PubChem connector, independently re-verified to pass
+   `cradle-conformance` — and surfaced three real, now-fixed gaps in `CONTRIBUTING.md` (CURIE
+   format wasn't stated in the connector section, what conformance actually asserts wasn't
+   stated, and there was no pointer to `cradle.knowledge.http`'s retry helpers — left the
+   fresh-built connector using raw `requests` rather than "fixing" it, since that would have
+   hidden the gap the exercise was meant to find). Recheck of two old blockers (AutoDock
+   Vina's Windows wheel, CompuCell3D's PyPI availability) found both unchanged. Ran the full
+   suite (73 passed, 2 skipped, 0 failed), updated `docs/ROADMAP.md`/`README.md`/`Dockerfile`/
+   `Apptainer.def`/this file, and committed.
 
 ## Pending work, in a reasonable priority order
 
@@ -137,9 +170,18 @@ passes on a normal single run.
    valid but unverified by an actual `cwltool` run (only Snakemake was confirmed to execute,
    on this Windows machine). If a Linux/WSL environment becomes available, running
    `cwltool workflows/lab_pipeline.cwl ...` there would close this out fully.
-8. **Phase 12** (Arc State/ESM3/AlphaFold3/etc., community contribution process) — not
-   started; also explicitly meant to recur (revisit Phase 2/5/7/9/10/11's engine/tool choices
-   against the state of the art at that time).
+8. **Phase 12 remainder**: Arc State (needs a 3-11GB download plus a training-run-directory
+   input for its more relevant model — worth a real attempt if there's appetite for the
+   larger lift), CellOracle/HADDOCK3 (would need a working Unix build toolchain or Rust/MSVC
+   linker fix respectively — likely means a Linux/WSL environment, not a Windows fix), NAMD/
+   ChimeraX's actual config/scripting translation layer (needs the real binaries to test
+   against, which this machine doesn't have). AlphaFold3/-Multimer/SCENIC+ are blocked for
+   structural reasons (manual license application, TB-scale database infra, no PyPI package)
+   unlikely to change soon — not worth re-checking again until there's a specific reason to.
+9. **Phase 12's own "revisit" mandate is meant to recur, not close** — periodically re-check
+   Phase 2/5/7/9/10/11's engine/tool choices against the state of the art at whatever future
+   point this is picked up again, the same way this session's revisit found ESM3/ESM-C's
+   license had genuinely changed since Phase 5.
 
 No other loose ends: nothing half-implemented or silently stubbed. Every "not done" item
 above is a documented, confirmed blocker (see `docs/ROADMAP.md` for the specific evidence
@@ -178,16 +220,34 @@ behind each one), not a TODO that was skipped without checking.
 - Shell rules/scripts that invoke `python` as a bare command (e.g. inside `workflows/Snakefile`)
   resolve it via `sys.executable`, not PATH — this machine has more than one Python install on
   PATH, and the first one found is not this project's venv.
+- `plugins/esmc_embedding/` sets `HF_HUB_DISABLE_SYMLINKS=1` itself before importing
+  `huggingface_hub` — without it, the first (uncached) model load crashes on Windows the same
+  way cwltool's file staging did (`WinError 1314`, missing symlink privilege). If you add
+  another `huggingface_hub`-based plugin, set this the same way rather than rediscovering it.
+- Before assuming any model/tool is license-gated or blocked, check directly — this session
+  found a real, dated correction (ESM3/ESM-C's license) by not trusting the roadmap's own
+  earlier assumption. `HfApi().model_info(repo_id).gated` and the model's own `LICENSE.md`/
+  README are the authoritative sources, not a general impression from when the roadmap was
+  first written.
+- `plugins/pubchem_data/` was built by a fresh verification agent, not by the core session
+  work — it's real, tested, and independently re-verified to pass conformance, but it uses
+  raw `requests` instead of `cradle.knowledge.http`'s retry helpers (a known, deliberately
+  undisturbed gap — see Phase 12 in `docs/ROADMAP.md`). Fine to leave as-is or fix later;
+  don't be surprised it doesn't match every other connector's exact pattern.
 
 ## Exactly what to tell the next session
 
 > Continue the Cradle project at `C:\Users\bahad\Cradle`. Read `docs/HANDOFF.md` first for
-> full context, then `docs/ROADMAP.md` for phase detail. Phases 0-11 are built and committed
-> (10 and 11 are each "partial, done" — see the table in HANDOFF.md for exactly what's
-> partial and why). Go with Phase 12 [or: finish Phase 5's remaining AI contracts / Phase 7's
-> docking contract / Phase 8's ASTRA connector / Phase 10's Simularium renderer / Phase 11's
-> container build-and-test on a machine with Docker or WSL2 — pick whichever you want next].
-> Keep everything local (no Claude Artifacts for this project), verify every claim against a
-> real API/library/dataset before writing it down, document genuine blockers honestly instead
-> of faking or skipping them, and commit to git at the end of the phase with a detailed
-> message in the same style as the existing commits.
+> full context, then `docs/ROADMAP.md` for phase detail. All 13 roadmap phases (0-12) have
+> now been touched at least once — several are intentionally partial with real, confirmed
+> blockers, not oversights (see the table in HANDOFF.md). Pick a direction: finish Phase 5's
+> remaining AI contracts, Phase 7's docking contract, Phase 8's ASTRA connector, Phase 10's
+> Simularium renderer, Phase 11's container build-and-test on a machine with Docker or WSL2,
+> Phase 12's remaining second-wave models (Arc State is the most promising if there's
+> appetite for a large download), or a fresh Phase 12-style "revisit" pass over earlier
+> phases' engine/tool choices against whatever's changed since. Keep everything local (no
+> Claude Artifacts for this project), verify every claim against a real API/library/dataset
+> before writing it down — including re-checking old assumptions, not just new ones, the way
+> this session found ESM3/ESM-C's license had actually changed — document genuine blockers
+> honestly instead of faking or skipping them, and commit to git at the end of the phase with
+> a detailed message in the same style as the existing commits.

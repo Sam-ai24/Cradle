@@ -148,22 +148,43 @@ actually runs here, verified by a real subprocess-invoking test. `Dockerfile`/`A
 are written but unbuilt: no Docker or WSL2 is installed on this machine, a confirmed gap, not
 a skipped step.
 
+**Phase 12 (second-wave AI models & governance) — in progress.** `plugins/esmc_embedding/`
+implements the embedding AI contract for real against ESM-C-300M, after directly checking
+(not assuming) that this specific checkpoint is MIT-licensed and non-gated — correcting an
+earlier assumption in `docs/ARCHITECTURE.md`/`NOTICE.md`. Four of the other five named
+second-wave models (CellOracle, HADDOCK3, SCENIC+, AlphaFold3/-Multimer) are confirmed
+blocked or deliberately deferred for real, disclosed reasons; Arc State installs cleanly but
+needs multi-GB downloads and a training-run-directory input its more relevant model expects,
+so it's deferred rather than rushed. `cradle.lab.bridges` gives NAMD/ChimeraX a real,
+tested "is a user's own installation configured and runnable" check; translating Cradle's MD
+manifest into NAMD's own config format is real work deliberately left unattempted untested.
+`CONTRIBUTING.md` formalizes the plugin-contribution process, and the phase's own exit
+criterion — an external contributor adding a working adapter with no core-team help — was
+verified directly: a fresh agent given only the published docs built and shipped
+`plugins/pubchem_data/`, a real PubChem connector that passes conformance, surfacing three
+real documentation gaps now fixed. See `docs/ROADMAP.md` for the full account.
+
 See `docs/ROADMAP.md` for what's next (finishing Phase 5's AI layer, Phase 7's docking
-contract, Phase 8's environmental-stress category, Phase 10's remaining renderers, or
-Phase 11's container build/test on a machine that actually has Docker or WSL2).
+contract, Phase 8's environmental-stress category, Phase 10's remaining renderers, Phase
+11's container build/test on a machine that actually has Docker or WSL2, or closing out
+Phase 12's exit-criterion verification).
 
 ## Getting started (local dev)
 
 ```bash
 python -m venv .venv
 source .venv/Scripts/activate   # Windows Git Bash; use .venv\Scripts\activate.bat on cmd
-pip install -e ".[dev,demo]" \
+pip install -e ".[dev,demo,lab,pipelines]" \
   -e plugins/hello_data -e plugins/hello_sim -e plugins/hello_ai \
   -e plugins/tellurium_sim -e plugins/copasi_sim -e plugins/cobrapy_fba \
   -e plugins/uniprot_data -e plugins/pdb_data -e plugins/alphafold_data \
   -e plugins/reactome_data -e plugins/biomodels_data -e plugins/string_data \
   -e plugins/biogrid_data -e plugins/cellxgene_data -e plugins/kegg_data \
-  -e plugins/llm_orchestrator
+  -e plugins/chembl_data -e plugins/depmap_data -e plugins/scperturb_data \
+  -e plugins/aging_expression_data -e plugins/collectri_data -e plugins/pubchem_data \
+  -e plugins/openmm_md -e plugins/grn_inference -e plugins/boolean_qual_sim \
+  -e plugins/ecell4_spatial -e plugins/perturbation_baselines \
+  -e plugins/llm_orchestrator -e plugins/esmc_embedding
 
 cradle-conformance   # discovers + verifies every registered plugin (live network calls)
 pytest -q            # same checks, plus the Phase 1-5 substrate + adapter + knowledge + AI tests

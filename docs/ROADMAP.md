@@ -598,7 +598,7 @@ against real content in `tests/test_lab_api.py` (checks the rendered Markdown ac
 contains the real fitted value, CI, and curation tier, not just that a file was written) and
 exercised for real in the Phase 11 notebook's final cell.
 
-## Phase 12 — Second-wave AI models & governance maturity
+## Phase 12 — Second-wave AI models & governance maturity — 🟡 in progress (2026-08-21)
 
 - Add license-gated adapters for Arc State, ESM3/ESM C, AlphaFold3, AlphaFold-Multimer
   (all non-commercial deployments only), plus **SCENIC+**, **CellOracle**, and **HADDOCK**
@@ -613,3 +613,102 @@ exercised for real in the Phase 11 notebook's final cell.
 **Exit criterion:** an external contributor successfully adds a new adapter (data,
 simulation, AI, or visualization) using only the published contract spec, with no direct
 help from the core team.
+
+**One second-wave AI model built for real — after a licensing assumption turned out to be
+wrong.** `docs/ARCHITECTURE.md`/`NOTICE.md` assumed (Phase 5-era) that ESM3/ESM-C both
+carry EvolutionaryScale's Cambrian Non-Commercial License, same category as Arc State/
+AlphaFold3. Checked directly rather than carried forward: `HfApi().model_info(...).gated`
+is `False` for `esm3-sm-open-v1`, `esmc-300m-2024-12`, and `esmc-600m-2024-12`, and the
+`evolutionaryscale/esm` GitHub repo's own `LICENSE.md` is plain MIT with no commercial
+restriction — correcting both docs with a dated note. `plugins/esmc_embedding/` implements
+the embedding AI contract (Architecture, Layer 5) against ESM-C-300M with no license gate:
+real inference on a real UniProt sequence (human polyubiquitin-B, `uniprot:P0CG47`),
+mean-pooled per-residue embeddings, verified against actual correctness (not just shape) —
+deterministic for the same sequence, meaningfully different for two unrelated real proteins
+(`tests/test_esmc_embedding.py`). One real cost disclosed rather than hidden: the checkpoint
+is a ~1.3GB one-time download (~110s first time, ~8s once cached, CPU inference itself under
+2s) — same "large one-time download, cached" pattern Phase 8 established for DepMap. One
+Windows-specific fix applied proactively: `huggingface_hub`'s cache defaults to symlinks,
+which need a Windows privilege a normal account doesn't hold (the same class of issue
+Phase 11 hit with `cwltool`) — the adapter sets `HF_HUB_DISABLE_SYMLINKS=1` itself before
+importing `huggingface_hub`, so a researcher never needs to discover this env var.
+
+**The other five named second-wave models — checked directly, four confirmed blocked, one
+deliberately deferred as too large to rush.** Not carried forward from the roadmap's
+original assumptions without re-testing:
+- **CellOracle** — blocked. Its `velocyto` dependency needs `pysam`, which needs a Unix
+  build toolchain (`make`/config scripts) with no Windows path; confirmed via two direct,
+  distinct build failures (missing `numpy` at legacy build time, then a `FileNotFoundError`
+  invoking a Unix build helper), not assumed from a compatibility list.
+- **HADDOCK3** — blocked. Its `gdock` dependency is a Rust extension (via `maturin`) that
+  fails to link on this machine (`link.exe` invocation errors) — a real, confirmed MSVC/Rust
+  toolchain gap, not a missing-wheel issue like Vina's.
+- **SCENIC+** — blocked, unchanged from what Phase 7 already found for it: no PyPI
+  distribution at all (`pip index versions scenicplus` reports none).
+- **AlphaFold3 / AlphaFold-Multimer** — deferred, not attempted further: AF3's weights
+  require a manual application to Google DeepMind regardless of any pip package's code
+  (unautomatable by design, a different category of blocker than a missing wheel); AF-
+  Multimer's parameters are genuinely open (Apache-2.0) but running it needs the original
+  AlphaFold genetic-search database stack (BFD/MGnify/Uniclust30, hundreds of GB to
+  low-TB), an infrastructure-scale commitment disproportionate to anything else in this
+  phase — same "materially bigger, deliberately not rushed" call Phase 5 made for
+  Geneformer/Evo2/OpenFold.
+- **Arc State** — deferred. Its package (`arc-state`) installs cleanly and its license *is*
+  confirmed genuinely restrictive (the Arc Research Institute State Model Non-Commercial
+  License + Acceptable Use Policy, verified against the model's own GitHub README) — but
+  its embedding-tier checkpoint alone (`arcinstitute/SE-600M`) is 2.9-11GB depending on
+  which file, and its more relevant perturbation-prediction ("State Transition") model
+  expects a full local training-run directory as its "checkpoint," not a single downloadable
+  inference artifact — a bigger lift than a large-but-single download. Uninstalled after
+  investigation rather than left half-integrated: installing it force-upgraded `transformers`
+  past what `esm` (this phase's other new dependency) declares compatible — confirmed
+  non-breaking for `esmc_embedding`'s own tests before reverting, but a real cross-plugin
+  dependency fragility worth flagging for anyone installing both in one environment.
+
+**NAMD/ChimeraX bring-your-own-license bridges — the verifiable part built, the
+unverifiable part deliberately not faked.** Neither has a PyPI package (confirmed:
+`pip index versions namd`/`chimerax` report none) and neither binary is installed on this
+machine, so there's nothing to test a real integration against. `cradle.lab.bridges`
+implements and tests (against a real executable — this session's own Python interpreter,
+standing in for the missing binary) the part that *is* verifiable without one: resolve a
+user-configured executable path (or PATH fallback names) and confirm it actually runs,
+raising `NotConfiguredError` — the same skip-not-fail signal Phase 3/5's key/license gates
+use — if nothing is configured or a configured path doesn't actually execute
+(`tests/test_lab_bridges.py`). Translating a `cradle.md.MDManifest` into NAMD's own PSF/
+parameter-file config format is real, non-trivial work deliberately not attempted untested
+against the real engine — same "don't ship untested complexity" rule Phase 11 applied to
+the Dockerfile, one step earlier in the pipeline. `check_namd()`/`check_chimerax()` provide
+best-effort default invocation flags, explicitly marked unverified.
+
+**Community plugin-contribution process — formalized, then tested against a genuinely
+fresh contributor, exit criterion met.** `CONTRIBUTING.md` is the complete, self-contained
+guide (contract reference per plugin kind, the entry_points mechanism, the
+`NotConfiguredError`/`LicenseGate` patterns, a semver policy, what review actually checks) —
+written to require nothing beyond itself, `docs/ARCHITECTURE.md`, and the actual
+`cradle.contracts` source. Verified directly rather than assumed sufficient: a completely
+fresh agent, with no access to any of Cradle's other real plugin implementations (only
+`CONTRIBUTING.md`, `docs/ARCHITECTURE.md`, the contracts source, and the three reference
+`hello_*` plugins it explicitly points to), independently built `plugins/pubchem_data/` — a
+real `DataConnector` for PubChem's public PUG REST API (CID-addressed compound records,
+public-domain data, no license gate needed) — installed it, and got a genuine `PASS` from
+`cradle-conformance`, confirmed again independently in this session rather than trusted from
+the agent's own report. Its correctness test (`tests/test_pubchem_data.py`) clears the same
+bar as every other plugin in this repo: real ground-truth values (aspirin's actual molecular
+formula and weight), a second real compound proving the output isn't a constant stub, and a
+genuinely-discovered PubChem API quirk (a syntactically valid but never-assigned CID returns
+HTTP 200 with an empty payload instead of a 404) handled correctly rather than crashing.
+
+This also surfaced three real, honest gaps in `CONTRIBUTING.md`, now fixed: the CURIE
+`namespace:local_id` format was only stated in `docs/ARCHITECTURE.md`'s prose, not in the
+connector-contract section itself; what `check_data_connector` actually asserts (the four
+`ConnectorRecord` keys present, nothing about `data` being non-empty) was unstated; and
+there was no pointer to `cradle.knowledge.http`'s retry-with-backoff helpers, so the
+fresh-built connector calls `requests` directly instead — a real, disclosed inconsistency
+with the rest of the codebase's pattern, left as-is rather than "fixed" after the fact,
+since patching it would have hidden exactly the gap this exercise was meant to find.
+
+**Revisited against current state of the art, per this phase's own recurring mandate:**
+AutoDock Vina (Phase 7) still has no Windows wheel (`pip download --platform win_amd64`
+confirms no matching distribution) — unchanged. CompuCell3D (Phase 9) still has no PyPI
+package at all — unchanged. The ESM3/ESM-C licensing correction above is the one case where
+re-checking actually changed the answer.

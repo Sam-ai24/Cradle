@@ -56,8 +56,16 @@ carries the same flag as `usable_for_training = False` — checked directly by
   their output. Not used as a default; available only as an explicitly gated,
   non-commercial adapter. **AlphaFold-Multimer** weights carry the same CC BY-NC 4.0
   restriction — same gate, use **OpenFold3** instead (Apache-2.0, matches AF3 accuracy).
-- **ESM3 / ESM C** weights ship under the Cambrian Non-Commercial License — gated,
-  requires a separate commercial license from EvolutionaryScale before commercial use.
+- **ESM3-open-small and ESM-C (300M/600M) — corrected 2026-08-21.** This file previously
+  stated these ship under a gated Cambrian Non-Commercial License, following the roadmap's
+  Phase 5-era assumption. Checked directly while building Phase 12's `esmc_embedding`
+  plugin: `HfApi().model_info(...).gated` is `False` for all three
+  (`EvolutionaryScale/esm3-sm-open-v1`, `esmc-300m-2024-12`, `esmc-600m-2024-12`), and the
+  `evolutionaryscale/esm` GitHub repo's own `LICENSE.md` is plain MIT with no commercial
+  restriction — EvolutionaryScale appears to have since open-sourced these specific
+  checkpoints. Treated as MIT/ungated for Cradle's purposes; re-verify before a commercial
+  deployment decision, since this could change again and larger/future EvolutionaryScale
+  models may carry different terms.
 - **Arc State** code is CC BY-NC-SA 4.0 and weights are under Arc's non-commercial
   research license — gated, second-wave adapter only.
 - **SCENIC+** and **CellOracle** (gene-regulatory-network tools) both carry custom

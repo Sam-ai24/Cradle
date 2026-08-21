@@ -33,10 +33,10 @@ From: python:3.11-slim
         -e plugins/reactome_data -e plugins/biomodels_data -e plugins/string_data \
         -e plugins/biogrid_data -e plugins/cellxgene_data -e plugins/kegg_data \
         -e plugins/chembl_data -e plugins/depmap_data -e plugins/scperturb_data \
-        -e plugins/aging_expression_data -e plugins/collectri_data \
+        -e plugins/aging_expression_data -e plugins/collectri_data -e plugins/pubchem_data \
         -e plugins/openmm_md -e plugins/grn_inference -e plugins/boolean_qual_sim \
         -e plugins/ecell4_spatial -e plugins/perturbation_baselines \
-        -e plugins/llm_orchestrator
+        -e plugins/llm_orchestrator -e plugins/esmc_embedding
 
 %runscript
     cd /cradle

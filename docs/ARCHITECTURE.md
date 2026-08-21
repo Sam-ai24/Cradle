@@ -110,7 +110,7 @@ simulation adapters, with a conformance test gating registration (mirroring
 
 | Contract | I/O shape | First implementation |
 |---|---|---|
-| Embedding/representation | AnnData/h5ad in → embedding matrix + provenance out | Geneformer (Apache-2.0) |
+| Embedding/representation | AnnData/h5ad in → embedding matrix + provenance out | Geneformer (Apache-2.0) planned for single-cell expression; **ESM-C-300M (MIT) actually implemented in Phase 12** for protein sequences — a different embedding domain, not a Geneformer substitute |
 | Perturbation predictor | baseline state + perturbation spec → predicted delta + uncertainty (see extension below) | TranscriptFormer (MIT) first; CellOracle (gated, mechanistic) and Arc State (gated) later |
 | Sequence/genome model | sequence + task → score/generation/variant-effect | Evo2 (Apache-2.0) |
 | Structure predictor | sequence(+MSA) → 3D coords + per-residue confidence | **OpenFold** (Apache-2.0 code, CC BY 4.0 AF2 weights) — **not** AlphaFold3 |
@@ -157,11 +157,15 @@ richer output modes.
 a separate non-commercial-only license that also forbids training competing models on its
 outputs. OpenFold (Apache-2.0 code, CC BY 4.0 AF2 weights) is the safe, redistributable
 default; AF3 can exist as an optional, explicitly license-gated adapter for non-commercial
-users only. Same pattern for ESM3/ESM C (Cambrian non-commercial license) and Arc State
-(CC BY-NC-SA + non-commercial weights), and now also **AlphaFold-Multimer** (CC BY-NC 4.0
-weights), **SCENIC+** and **CellOracle** (both custom non-commercial academic licenses),
-and **HADDOCK** (free for non-profit only, paid Accelrys license for commercial) — all
-second-wave, license-gated, never the default.
+users only. Same pattern for Arc State (CC BY-NC-SA + non-commercial weights), and now also
+**AlphaFold-Multimer** (CC BY-NC 4.0 weights), **SCENIC+** and **CellOracle** (both custom
+non-commercial academic licenses), and **HADDOCK** (free for non-profit only, paid Accelrys
+license for commercial) — all second-wave, license-gated, never the default. **Correction,
+2026-08-21 (Phase 12):** ESM3-open-small and ESM-C (300M/600M) were assumed here to carry
+the same non-commercial Cambrian license — checked directly and found to be plain MIT,
+non-gated on HuggingFace (see `NOTICE.md`'s dated correction). `plugins/esmc_embedding/`
+implements the embedding contract against ESM-C-300M with no license gate as a result — the
+first of Layer 5's typed contracts with a real, unblocked implementation.
 
 ## Layer 6 — Data/knowledge layer: CURIE-addressed, license-gated connectors
 

@@ -20,12 +20,17 @@ from cradle.lab.api import (
     read_sedml_summary,
     simulate,
 )
+from cradle.lab.bridges import BridgeStatus, check_bridge, check_chimerax, check_namd
 from cradle.lab.report import LabReport, render_markdown, write_lab_report
 
 __all__ = [
+    "BridgeStatus",
     "LabError",
     "LabReport",
     "apply_fitted_parameters",
+    "check_bridge",
+    "check_chimerax",
+    "check_namd",
     "compare_adapters",
     "compare_trajectories",
     "curate_model",

@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-pubchem-data"
+version = "0.1.0"
+description = "DataConnector plugin for Cradle's Layer 6 knowledge layer: fetches real compound records from PubChem's public PUG REST API (CID-addressed, public-domain data)."
+requires-python = ">=3.11"
+dependencies = ["cradle-core", "requests>=2.31"]
+
+[project.entry-points."cradle.data_connectors"]
+pubchem = "pubchem_data.connector:PubChemConnector"
+
+[tool.setuptools.packages.find]
+where = ["src"]
