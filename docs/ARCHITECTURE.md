@@ -110,7 +110,7 @@ simulation adapters, with a conformance test gating registration (mirroring
 
 | Contract | I/O shape | First implementation |
 |---|---|---|
-| Embedding/representation | AnnData/h5ad in → embedding matrix + provenance out | Geneformer (Apache-2.0) planned for single-cell expression; **ESM-C-300M (MIT) actually implemented in Phase 12** for protein sequences — a different embedding domain, not a Geneformer substitute |
+| Embedding/representation | AnnData/h5ad in → embedding matrix + provenance out | **Both actually implemented in Phase 12**: Geneformer (Apache-2.0) for single-cell expression, ESM-C-300M (MIT) for protein sequences — genuinely different embedding domains, not substitutes for each other |
 | Perturbation predictor | baseline state + perturbation spec → predicted delta + uncertainty (see extension below) | TranscriptFormer (MIT) first; CellOracle (gated, mechanistic) and Arc State (gated) later |
 | Sequence/genome model | sequence + task → score/generation/variant-effect | Evo2 (Apache-2.0) |
 | Structure predictor | sequence(+MSA) → 3D coords + per-residue confidence | **OpenFold** (Apache-2.0 code, CC BY 4.0 AF2 weights) — **not** AlphaFold3 |
@@ -164,8 +164,16 @@ license for commercial) — all second-wave, license-gated, never the default. *
 2026-08-21 (Phase 12):** ESM3-open-small and ESM-C (300M/600M) were assumed here to carry
 the same non-commercial Cambrian license — checked directly and found to be plain MIT,
 non-gated on HuggingFace (see `NOTICE.md`'s dated correction). `plugins/esmc_embedding/`
-implements the embedding contract against ESM-C-300M with no license gate as a result — the
-first of Layer 5's typed contracts with a real, unblocked implementation.
+implements the embedding contract against ESM-C-300M with no license gate as a result.
+`plugins/geneformer_embedding/` implements the same contract for single-cell expression
+against Geneformer (Apache-2.0, also non-gated) — the model this table always named as the
+intended default, unbuilt from Phase 5 until Phase 12 because a real, working install was a
+genuinely multi-step problem (no PyPI package; a git clone of its HuggingFace repo fails;
+its own `__init__.py` eagerly imports a submodule with an unbuildable native dependency on
+this machine) rather than a licensing block — see `NOTICE.md` and the adapter's own module
+docstring for exactly how each was worked around. The embedding contract is now Layer 5's
+first typed contract with real, unblocked implementations covering two genuinely different
+domains (protein sequences, single-cell transcriptomes).
 
 ## Layer 6 — Data/knowledge layer: CURIE-addressed, license-gated connectors
 

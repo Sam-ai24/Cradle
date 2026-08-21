@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cradle-plugin-geneformer-embedding"
+version = "0.1.0"
+description = "Single-cell RNA-seq embedding adapter for Cradle, backed by Geneformer (ctheodoris/Geneformer, Apache-2.0). Fetches the package source directly via huggingface_hub (no PyPI package exists) - see adapter.py's module docstring."
+requires-python = ">=3.11"
+dependencies = [
+    "cradle-core",
+    "torch>=2.0",
+    "transformers>=4.30",
+    "huggingface_hub>=0.20",
+    "datasets>=2.14",
+    "scanpy>=1.9",
+    "anndata>=0.10",
+]
+
+[project.entry-points."cradle.ai_model_adapters"]
+geneformer = "geneformer_embedding.adapter:build_adapter"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -14,3 +14,8 @@ workflows/example_output/
 notebooks/phase11_*.xml
 notebooks/phase11_*.omex
 notebooks/phase11_report.md
+# scanpy's own default download cache (sc.datasets.*() writes here relative
+# to cwd) - not a Cradle convention, used only by geneformer_embedding's
+# lazy example-data preparation, which caches its derived file separately
+# under ~/.cradle/cache/ instead.
+data/

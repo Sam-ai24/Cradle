@@ -37,6 +37,6 @@ RUN pip install --no-cache-dir -e ".[dev,demo,lab,pipelines]" \
     -e plugins/aging_expression_data -e plugins/collectri_data -e plugins/pubchem_data \
     -e plugins/openmm_md -e plugins/grn_inference -e plugins/boolean_qual_sim \
     -e plugins/ecell4_spatial -e plugins/perturbation_baselines \
-    -e plugins/llm_orchestrator -e plugins/esmc_embedding
+    -e plugins/llm_orchestrator -e plugins/esmc_embedding -e plugins/geneformer_embedding
 
 CMD ["pytest", "-q"]

@@ -161,7 +161,13 @@ a skipped step.
 **Phase 12 (second-wave AI models & governance) — in progress.** `plugins/esmc_embedding/`
 implements the embedding AI contract for real against ESM-C-300M, after directly checking
 (not assuming) that this specific checkpoint is MIT-licensed and non-gated — correcting an
-earlier assumption in `docs/ARCHITECTURE.md`/`NOTICE.md`. Four of the other five named
+earlier assumption in `docs/ARCHITECTURE.md`/`NOTICE.md`. `plugins/geneformer_embedding/`
+does the same for single-cell expression against **Geneformer** — the model Architecture
+Layer 5 always named as the intended default, unbuilt since Phase 5 because a real install
+was a genuinely multi-step problem (no PyPI package, a broken git clone, an unbuildable
+native dependency deep in its own package init) rather than a license block; worked through
+and disclosed rather than deferred, verified on real 10x Genomics PBMC cells. Four of the
+other five named
 second-wave models (CellOracle, HADDOCK3, SCENIC+, AlphaFold3/-Multimer) are confirmed
 blocked or deliberately deferred for real, disclosed reasons; Arc State installs cleanly but
 needs multi-GB downloads and a training-run-directory input its more relevant model expects,
@@ -194,7 +200,7 @@ pip install -e ".[dev,demo,lab,pipelines]" \
   -e plugins/aging_expression_data -e plugins/collectri_data -e plugins/pubchem_data \
   -e plugins/openmm_md -e plugins/grn_inference -e plugins/boolean_qual_sim \
   -e plugins/ecell4_spatial -e plugins/perturbation_baselines \
-  -e plugins/llm_orchestrator -e plugins/esmc_embedding
+  -e plugins/llm_orchestrator -e plugins/esmc_embedding -e plugins/geneformer_embedding
 
 cradle-conformance   # discovers + verifies every registered plugin (live network calls)
 pytest -q            # same checks, plus the Phase 1-5 substrate + adapter + knowledge + AI tests

@@ -66,6 +66,17 @@ carries the same flag as `usable_for_training = False` — checked directly by
   checkpoints. Treated as MIT/ungated for Cradle's purposes; re-verify before a commercial
   deployment decision, since this could change again and larger/future EvolutionaryScale
   models may carry different terms.
+- **Geneformer** (`ctheodoris/Geneformer`) is Apache-2.0 and non-gated on HuggingFace
+  (confirmed via `HfApi().model_info(...)`, `license:apache-2.0` tag) — no gate needed.
+  `plugins/geneformer_embedding/` implements the embedding contract against it. Not
+  installable via `pip install geneformer` or a plain `git clone` (no PyPI package; a
+  git partial-clone of its HuggingFace repo fails with `fatal: expected 'packfile'`,
+  confirmed directly) — the plugin fetches the package source via `huggingface_hub.
+  snapshot_download` instead and replaces its `__init__.py` with a minimal version that
+  skips three submodules requiring `tdigest`'s `accumulation-tree` dependency, an
+  unbuildable Cython extension on this machine (no MSVC toolchain) — disclosed in the
+  adapter's own module docstring, same category of disclosed local workaround as the
+  `pwd.py` stub Phase 11 used for `cwltool` on Windows (see `docs/HANDOFF.md`).
 - **Arc State** code is CC BY-NC-SA 4.0 and weights are under Arc's non-commercial
   research license — gated, second-wave adapter only.
 - **SCENIC+** and **CellOracle** (gene-regulatory-network tools) both carry custom

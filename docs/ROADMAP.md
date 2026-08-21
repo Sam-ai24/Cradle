@@ -666,6 +666,30 @@ which need a Windows privilege a normal account doesn't hold (the same class of 
 Phase 11 hit with `cwltool`) — the adapter sets `HF_HUB_DISABLE_SYMLINKS=1` itself before
 importing `huggingface_hub`, so a researcher never needs to discover this env var.
 
+**A second real trained AI model, 2026-08-21 — Geneformer, the embedding-contract default
+Architecture Layer 5's own table has named since Phase 5 and never built until now.** Not
+blocked by licensing (confirmed Apache-2.0, non-gated) but by a genuinely multi-step install
+problem, worked through rather than deferred: no PyPI package exists (`pip index versions
+geneformer` reports none); `pip install git+https://huggingface.co/ctheodoris/Geneformer.git`
+fails with `fatal: expected 'packfile'` (a real git/LFS partial-clone incompatibility,
+confirmed directly); and the package's own `geneformer/__init__.py` eagerly imports three
+submodules (`emb_extractor`, `classifier`, `mtl_classifier`) that transitively require
+`tdigest`'s own dependency `accumulation-tree`, a Cython extension that fails to build on
+this machine (`Microsoft Visual C++ 14.0 or greater is required`) — none of those three are
+needed for tokenization or base-model embedding extraction. `plugins/geneformer_embedding/`
+fetches the real package source directly via `huggingface_hub.snapshot_download` (which
+resolves real LFS content with no git involved at all) into a sandboxed local cache, then
+replaces just `__init__.py` with a minimal version importing only what's needed — disclosed
+in the adapter's own module docstring and `NOTICE.md`, the same category of local workaround
+as Phase 11's `pwd.py` stub, not hidden. Verified against real data: tokenizes and embeds
+real cells from scanpy's `pbmc3k` (10x Genomics' classic public human-PBMC dataset, not
+synthetic), producing a real 256-dim embedding per cell — deterministic for the same input,
+meaningfully different between two different real cells, not just correctly shaped
+(`tests/test_geneformer_embedding.py`). The embedding contract now has two real,
+license-clean implementations across genuinely different domains (protein sequences via
+ESM-C, single-cell transcriptomes via Geneformer) — the actual comparison set
+`docs/LANDSCAPE.md` measured Cradle against (Geneformer/scGPT/UCE/TranscriptFormer).
+
 **The other five named second-wave models — checked directly, four confirmed blocked, one
 deliberately deferred as too large to rush.** Not carried forward from the roadmap's
 original assumptions without re-testing:
