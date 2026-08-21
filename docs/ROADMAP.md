@@ -92,6 +92,39 @@ here: `check_simulation_adapter` now dispatches on each adapter's declared `inpu
 passing unmodified while real adapters get checked against a real reference archive
 (`cradle/conformance/fixtures.py`) — additive, not breaking.
 
+**Addendum, 2026-08-21 — validated at real genome scale, not just the toy network.**
+Following the Phase 12 landscape review's own finding that every validated case so far was
+toy-scale, the *unmodified* `cobrapy` adapter was run against **iML1515** (Monk et al. 2017,
+*Nature Biotechnology*, PMID 29020004) — a real, independently published, highly-cited
+*E. coli* K-12 genome-scale metabolic reconstruction: 2,712 reactions, 1,877 metabolites,
+1,516 genes, fetched live from the BiGG Models database and cached via
+`cradle.knowledge.cache` (Phase 8's large-download pattern). No adapter code needed to
+change for this to work — the existing `input_mode = "fba_sbml"` contract already generalizes
+from a 3-reaction toy network to a real genome-scale model with zero modification, the
+actual point of the swap-boundary architecture. `worker.py` gained one small, additive
+extension (optional gene-knockout arguments before optimizing) to support the validation
+below, backward-compatible with every existing call.
+
+Two independent validation axes, the same style Karr et al. 2012's *M. genitalium* whole-cell
+model used (comparing in-silico predictions against real experimental biology), not just a
+shape check:
+- **Growth rate**: predicts 0.877 h⁻¹ aerobic growth on glucose minimal media — consistent
+  with the widely-cited ~0.87-0.88 h⁻¹ range for this model/condition (cross-checked against
+  COBRApy's own documented example on the smaller, related "textbook" *E. coli* core model
+  under the same condition, which returns a closely matching 0.874 h⁻¹; the original paper's
+  own exact stated figure could not be directly confirmed this session — its page wasn't
+  renderable via the tools available — so this is disclosed as a strong but not
+  paper-exact corroboration).
+- **Gene essentiality**: single-gene knockouts of `murA` (peptidoglycan synthesis) and
+  `accA` (fatty-acid synthesis) correctly predict zero growth (real, independently
+  documented essential genes); `lacZ`/`lacY`/`araA` (sugar catabolism irrelevant to glucose
+  media) correctly predict unchanged growth. One genuinely interesting negative-ish result,
+  documented rather than swept under a cleaner example: `folA` (dihydrofolate reductase,
+  textbook-essential) knockout is **not** lethal in this model — checked directly rather
+  than assumed wrong, its own gene-reaction rule is `"b1606 or b0048"`, and `b1606` is
+  `folM`, a real, independently published secondary DHFR in *E. coli* (Giladi et al. 2003)
+  the model correctly treats as a redundant isozyme. All four in `tests/test_genome_scale_fba.py`.
+
 ## Phase 3 — Knowledge/data layer (MVP) — ✅ done (2026-08-20)
 
 - Build connectors for the 8 open-license MVP sources: UniProt, RCSB PDB, AlphaFold DB,

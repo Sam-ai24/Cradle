@@ -9,6 +9,10 @@ system keeps absorbing better science and better models instead of being rewritt
 
 - [`docs/HANDOFF.md`](docs/HANDOFF.md) — start here when picking this project back up:
   current phase-by-phase state, what's pending, and operational notes.
+- [`docs/LANDSCAPE.md`](docs/LANDSCAPE.md) — how Cradle compares to the real competitive
+  landscape (Karr/Covert whole-cell models, CZI's Virtual Cells Platform, Arc Institute's
+  Virtual Cell Challenge, VCell/CompuCell3D/PhysiCell, single-cell foundation models), and
+  what's actually required to reach "scientific grade."
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the layered design: what standard sits at
   each swap boundary, which open-source projects to build on vs. avoid reinventing, and why.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — the phased, step-by-step build plan.
@@ -40,13 +44,19 @@ MIASE-style run provenance. The proof case is real, not synthetic: the Gardner, 
 Collins (2000) genetic toggle switch (BioModels BIOMD0000000507), fully sourced and
 CURIE-annotated, round-trips end to end and reproduces its expected bistable behavior.
 
-**Phase 2 (first simulation adapters) — done.** Three registered `SimulationAdapter`
-plugins under `plugins/`: Tellurium/libRoadRunner and COPASI (both run the Phase 1 toggle
-switch unmodified and agree numerically to within 0.1%) and COBRApy for FBA (subprocess-
-isolated per its GPL/LGPL license, verified against an analytically obvious optimum on a
-synthetic toy network). `cradle-conformance` now dispatches its check per adapter's
-declared `input_mode`, so real archive-based adapters get checked against a real reference
-archive while the Phase 0 toy plugin keeps passing unmodified.
+**Phase 2 (first simulation adapters) — done, validated at real scale 2026-08-21.** Three
+registered `SimulationAdapter` plugins under `plugins/`: Tellurium/libRoadRunner and COPASI
+(both run the Phase 1 toggle switch unmodified and agree numerically to within 0.1%) and
+COBRApy for FBA (subprocess-isolated per its GPL/LGPL license). `cradle-conformance`
+dispatches its check per adapter's declared `input_mode`, so real archive-based adapters get
+checked against a real reference archive while the Phase 0 toy plugin keeps passing
+unmodified. The COBRApy adapter was later run **unmodified** against a real genome-scale
+model — **iML1515** (2,712 reactions, 1,516 genes, Monk et al. 2017) — predicting the
+correct ~0.877/h glucose-minimal-media growth rate and correctly classifying real essential
+(`murA`, `accA`) vs. non-essential (`lacZ`, `lacY`, `araA`) gene knockouts, the same
+validation style Karr et al.'s 2012 whole-cell model used. See `docs/ROADMAP.md`'s Phase 2
+addendum for a genuinely interesting nuance this surfaced (a `folA` knockout prediction
+rescued by a real, independently documented redundant isozyme the model itself annotates).
 
 **Phase 3 (knowledge/data layer) — done.** Seven `DataConnector` plugins hit real, live
 APIs (UniProt, RCSB PDB, AlphaFold DB, Reactome, BioModels, STRING, CZ CELLxGENE Discover),

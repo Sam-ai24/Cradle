@@ -34,8 +34,9 @@ class CobraFbaSimulationAdapter:
 
     def run(self, model: dict[str, Any], config: dict[str, Any]) -> SimulationResult:
         sbml_path = model["sbml_path"]
+        gene_knockouts = config.get("gene_knockouts", [])
         completed = subprocess.run(
-            [sys.executable, "-m", "cobrapy_fba.worker", sbml_path],
+            [sys.executable, "-m", "cobrapy_fba.worker", sbml_path, *gene_knockouts],
             capture_output=True,
             text=True,
         )
