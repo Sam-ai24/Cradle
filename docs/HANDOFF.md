@@ -51,9 +51,9 @@ AI features (LLM orchestration) are fully optional and degrade gracefully with n
 | 9 — Spatial/multicellular | ✅ done | E-Cell4 (after CompuCell3D/PhysiCell/Smoldyn all ruled out) |
 | 10 — Visualization | 🟡 core done | Cytoscape.js + Mol* scale-router, 2-way run comparison; Escher/Simularium/VTK.js not built (no data to feed them yet) |
 | 11 — Lab-facing interface | 🟡 3/4 done | `cradle.lab` notebook API + real executed notebook done; Snakemake pipeline runs, CWL written but `cwltool` doesn't run natively on Windows; Docker/Apptainer files written but unbuilt (no Docker/WSL2 here) |
-| 12 — Second-wave AI & governance | 🟡 in progress | ESM-C-300M embedding adapter done (real, unblocked after a licensing correction); CONTRIBUTING.md written + exit criterion verified via a fresh agent; 4/6 named second-wave models confirmed blocked/deferred; NAMD/ChimeraX bridge detection layer done, translation layer not attempted |
+| 12 — Second-wave AI & governance | 🟡 in progress | ESM-C-300M + Geneformer embedding adapters done (real, license-clean); CONTRIBUTING.md written + exit criterion verified via a fresh agent; 4/6 named second-wave models confirmed blocked/deferred; NAMD/ChimeraX bridge detection layer done, translation layer not attempted |
 
-Full pytest suite as of the last commit: **77 passed, 2 skipped** (unconfigured keys/license
+Full pytest suite as of the last commit: **79 passed, 2 skipped** (unconfigured keys/license
 gates — expected), **0 failed** on a normal run. Live-network tests (conformance, ChEMBL,
 CollecTRI) are known to flake under rate-limiting/transient outages if the full suite is
 re-run repeatedly in a short window, or if a third-party host has a bad moment (an EBI/
@@ -162,13 +162,30 @@ dominates) — don't be alarmed if the suite runs noticeably longer than before.
    (optional gene-knockout arguments) to support this. Updated `docs/ROADMAP.md` (Phase 2
    addendum), `README.md`, `docs/LANDSCAPE.md` (marked its own scale-demonstration item
    done), this file, and committed as `b5b4b46`.
+9. Per `docs/LANDSCAPE.md`'s other top recommendation, built `plugins/geneformer_embedding/`
+   — Geneformer, the single-cell embedding model `docs/ARCHITECTURE.md`'s own Layer 5 table
+   has named as the intended default since Phase 5, never built until now. Not a licensing
+   block (confirmed Apache-2.0, non-gated) but a genuinely multi-step install problem worked
+   through rather than deferred: no PyPI package, a git clone of its HF repo failing with a
+   real LFS partial-clone error, and its own `__init__.py` eagerly importing three submodules
+   that need an unbuildable Cython extension (`accumulation-tree`, no MSVC toolchain here).
+   Fixed by fetching the real package source via `huggingface_hub.snapshot_download` (no git
+   at all) into a sandboxed local cache with a minimal replacement `__init__.py` — same
+   disclosed-workaround category as Phase 11's `pwd.py` stub. Verified against real 10x
+   Genomics `pbmc3k` cells (`tests/test_geneformer_embedding.py`): real, deterministic,
+   per-cell-distinct 256-dim embeddings. Updated `docs/ARCHITECTURE.md`, `NOTICE.md`,
+   `docs/ROADMAP.md`, `README.md`, `docs/LANDSCAPE.md` (marked its embedding recommendation
+   partially done — the perturbation contract and an actual public benchmark submission are
+   still open), this file, and committed as `0c8cb2b`.
 
 ## Pending work, in a reasonable priority order
 
 See also `docs/LANDSCAPE.md`'s own priority list (§5, "where this is realistically headed")
-for the strategic view — genome-scale FBA validation (its #2) is now done; its remaining
-items (a real trained AI model behind an existing contract, the public-release decision, a
-real external user) overlap with and motivate several of the roadmap items below.
+for the strategic view — genome-scale FBA validation (its #2) is done, and its #1 (a real
+trained AI model) is now half-done (embedding: `esmc_embedding` + `geneformer_embedding`;
+perturbation and an actual public benchmark submission are still open). Its remaining items
+(the public-release decision, a real external user) overlap with and motivate several of
+the roadmap items below.
 
 1. **Phase 5 remainder** (biggest open gap): implement the embedding (Geneformer), sequence
    (Evo2), structure (OpenFold), and perturbation (TranscriptFormer) AI contracts. This is
@@ -271,17 +288,19 @@ behind each one), not a TODO that was skipped without checking.
 > strategic picture (how Cradle compares to Karr/Covert whole-cell models, CZI's Virtual
 > Cells Platform, Arc Institute's Virtual Cell Challenge, and what "scientific grade"
 > actually requires). All 13 roadmap phases (0-12) have now been touched at least once, and
-> one of `docs/LANDSCAPE.md`'s own top recommendations (validate an adapter at real genome
-> scale) is already done (iML1515 via the unmodified COBRApy adapter) — several phases are
-> intentionally partial with real, confirmed blockers, not oversights (see the table in
-> HANDOFF.md). Pick a direction: finish a real trained AI model behind an existing contract
-> (`docs/LANDSCAPE.md`'s top remaining recommendation), Phase 5's remaining AI contracts,
-> Phase 7's docking contract, Phase 8's ASTRA connector, Phase 10's Simularium renderer,
-> Phase 11's container build-and-test on a machine with Docker or WSL2, Phase 12's remaining
-> second-wave models (Arc State is the most promising if there's appetite for a large
-> download), the public-release decision (`docs/LANDSCAPE.md` §3, blocked on you), or a
-> fresh "revisit" pass over earlier phases' engine/tool choices against whatever's changed
-> since. Keep everything local (no Claude Artifacts for this project), verify every claim
+> two of `docs/LANDSCAPE.md`'s own top recommendations are already done or half-done:
+> genome-scale FBA validation (iML1515 via the unmodified COBRApy adapter), and a real
+> trained AI model for the embedding contract (`esmc_embedding` + `geneformer_embedding`) —
+> several phases are intentionally partial with real, confirmed blockers, not oversights
+> (see the table in HANDOFF.md). Pick a direction: the perturbation contract or an actual
+> public benchmark submission (`docs/LANDSCAPE.md`'s remaining top recommendation), Phase 5's
+> other remaining AI contracts (sequence, structure), Phase 7's docking contract, Phase 8's
+> ASTRA connector, Phase 10's Simularium renderer, Phase 11's container build-and-test on a
+> machine with Docker or WSL2, Phase 12's remaining second-wave models (Arc State is the most
+> promising if there's appetite for a large download), the public-release decision
+> (`docs/LANDSCAPE.md` §3, blocked on you), or a fresh "revisit" pass over earlier phases'
+> engine/tool choices against whatever's changed since. Keep everything local (no Claude
+> Artifacts for this project), verify every claim
 > against a real API/library/dataset before writing it down — including re-checking old
 > assumptions, not just new ones, the way this session found ESM3/ESM-C's license had
 > actually changed — document genuine blockers honestly instead of faking or skipping them,
