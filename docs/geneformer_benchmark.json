@@ -1,0 +1,13 @@
+{
+  "n_cells": 292,
+  "n_real_cell_types": 8,
+  "embedding_dim": 256,
+  "geneformer": {
+    "silhouette_score": 0.1940101683139801,
+    "knn_cv_accuracy": 0.8803039158386907
+  },
+  "pca_baseline": {
+    "silhouette_score": -0.004286720883101225,
+    "knn_cv_accuracy": 0.2361776738749269
+  }
+}

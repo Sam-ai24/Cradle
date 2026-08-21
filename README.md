@@ -166,8 +166,14 @@ does the same for single-cell expression against **Geneformer** — the model Ar
 Layer 5 always named as the intended default, unbuilt since Phase 5 because a real install
 was a genuinely multi-step problem (no PyPI package, a broken git clone, an unbuildable
 native dependency deep in its own package init) rather than a license block; worked through
-and disclosed rather than deferred, verified on real 10x Genomics PBMC cells. Four of the
-other five named
+and disclosed rather than deferred, verified on real 10x Genomics PBMC cells. A real
+benchmark check against the field's own simplest baseline (PCA on log-normalized
+expression) found Geneformer's embedding substantially better at separating real,
+published PBMC cell types — 88.0% vs. 23.6% 5-fold k-NN accuracy — using `sklearn` after
+CZI's own `cz-benchmarks`/`scib-metrics` turned out blocked here too (`jaxlib` fails to
+import under a Windows Application Control policy, a different, real blocker). See
+`docs/ROADMAP.md`'s Phase 12 section and `docs/geneformer_benchmark.json` for the full
+numbers. Four of the other five named
 second-wave models (CellOracle, HADDOCK3, SCENIC+, AlphaFold3/-Multimer) are confirmed
 blocked or deliberately deferred for real, disclosed reasons; Arc State installs cleanly but
 needs multi-GB downloads and a training-run-directory input its more relevant model expects,

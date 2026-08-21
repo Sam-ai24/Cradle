@@ -152,11 +152,15 @@ In roughly the order that would matter most:
 1. **A real predictive AI result, honestly benchmarked.** ~~Complete at least one of the
    deferred embedding/perturbation/structure contracts against real trained weights~~ —
    **embedding half done, 2026-08-21**: `esmc_embedding` (protein sequences) and
-   `geneformer_embedding` (single-cell expression) are both real now. Still fully open:
-   the perturbation contract (what the Virtual Cell Challenge/VCBench actually evaluate,
-   as opposed to embedding), and — for either contract — an actual public benchmark
-   submission. Losing to the naive baseline and *publishing that honestly* — as Arc itself
-   did — is still a legitimate scientific-grade outcome; silence is not.
+   `geneformer_embedding` (single-cell expression) are both real now, and Geneformer's
+   embedding was checked against a real internal benchmark — it substantially beats PCA
+   (the field's simplest standard baseline) at separating real PBMC cell types (88.0% vs.
+   23.6% 5-fold k-NN accuracy; see `docs/ROADMAP.md`'s Phase 12 section). That's a real,
+   honest internal comparison, not yet a public one — still fully open: the perturbation
+   contract (what the Virtual Cell Challenge/VCBench actually evaluate, as opposed to
+   embedding), and an actual public leaderboard submission for either contract. Losing to
+   the naive baseline and *publishing that honestly* — as Arc itself did — is still a
+   legitimate scientific-grade outcome; silence is not.
 2. **Scale demonstration.** ~~Run the FBA adapter on a real genome-scale model~~ — **done,
    2026-08-21**: the unmodified COBRApy adapter now runs iML1515 (2,712 reactions, 1,516
    genes), correctly predicting the real published growth rate and correctly classifying
@@ -214,10 +218,14 @@ checked, honestly-reported findings), the highest-leverage next moves are:
    embedding half is done, 2026-08-21**: `esmc_embedding` (protein sequences) and
    `geneformer_embedding` (single-cell expression, the model this comparison's own table
    always named as the intended default) are both real, working, license-clean
-   implementations now. Still open: an actual public benchmark submission (VCBench /
-   Arc's Virtual Cell Challenge) — neither adapter has been scored against one yet, and
-   perturbation prediction (not embedding) is what those benchmarks actually evaluate, so
-   this doesn't yet close the "honestly benchmarked" half of this recommendation.
+   implementations now, and Geneformer's embedding has a real internal benchmark result
+   against the field's simplest baseline (88.0% vs. 23.6% 5-fold k-NN cell-type accuracy —
+   CZI's own `cz-benchmarks`/`scib-metrics` turned out blocked here too, a `jaxlib`/Windows
+   issue, worked around with plain `sklearn`). Still open: an actual *public* benchmark
+   submission (VCBench / Arc's Virtual Cell Challenge) — neither adapter has been scored
+   against one yet, and perturbation prediction (not embedding) is what those benchmarks
+   actually evaluate, so this doesn't yet close the "honestly benchmarked" half of this
+   recommendation.
 2. ~~Run one existing capability at real scale~~ — **done, 2026-08-21**: genome-scale FBA
    against iML1515, see above. The same "run it unmodified at real scale" move is still
    open for the GRN-inference and MD adapters.
