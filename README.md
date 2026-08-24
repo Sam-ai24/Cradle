@@ -7,6 +7,9 @@ system keeps absorbing better science and better models instead of being rewritt
 
 ## Documents
 
+- [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) — start here to actually *use* Cradle:
+  copy-pasteable commands for every real, working capability, grouped by what you're
+  trying to do rather than by architecture layer.
 - [`docs/HANDOFF.md`](docs/HANDOFF.md) — start here when picking this project back up:
   current phase-by-phase state, what's pending, and operational notes.
 - [`docs/LANDSCAPE.md`](docs/LANDSCAPE.md) — how Cradle compares to the real competitive
