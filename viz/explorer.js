@@ -300,17 +300,82 @@ function collectFields(obj, prefix, depth, scalars, vectors) {
   }
 }
 
+// Finds {category labels} + {one or more parallel numeric series of the
+// same length} sitting side by side in the response (e.g. an aging
+// trajectory's `index_values` age bins alongside its `values`/
+// `cell_counts`) - a shape too small to trigger the sparkline threshold but
+// too meaningful to leave as raw JSON.
+function findLabeledSeriesGroups(obj, prefix, depth, groups) {
+  if (depth > 3 || obj === null || typeof obj !== "object" || Array.isArray(obj)) return;
+  const entries = Object.entries(obj);
+  const stringArrays = entries.filter(([, v]) => Array.isArray(v) && v.length >= 2 && v.every((x) => typeof x === "string"));
+  const numberArrays = entries.filter(([, v]) => isNumberArray(v) && v.length >= 2);
+  for (const [, labels] of stringArrays) {
+    const aligned = numberArrays.filter(([, v]) => v.length === labels.length);
+    if (aligned.length) groups.push({ path: prefix, labels, series: aligned });
+  }
+  for (const [key, value] of entries) {
+    if (value !== null && typeof value === "object") {
+      findLabeledSeriesGroups(value, prefix ? `${prefix}.${key}` : key, depth + 1, groups);
+    }
+  }
+}
+
+function buildLabeledSeriesView(group) {
+  const wrap = document.createElement("div");
+  wrap.className = "chart-wrap";
+  const note = document.createElement("p");
+  note.className = "hint";
+  note.textContent = `${group.path || "(top level)"}, by [${group.labels.join(", ")}] — one chart per series (different series can be on very different scales):`;
+  wrap.appendChild(note);
+
+  // One mini chart per series rather than one shared canvas: series here
+  // (e.g. a 0-1 fraction next to a raw cell count) can differ by orders of
+  // magnitude, and overlaying them on one y-axis would silently flatten
+  // the smaller one into a flat line.
+  const grid = document.createElement("div");
+  grid.className = "labeled-series-grid";
+  const colors = ["#7a4b3a", "#3a6a5a", "#4a5a8a", "#8a6a3a", "#8a3a6a", "#3a8a8a", "#5a5a5a", "#8a4a4a"];
+  group.series.forEach(([name, values], i) => {
+    const cell = document.createElement("div");
+    const label = document.createElement("p");
+    label.className = "hint";
+    label.innerHTML = `<b>${escapeHtml(name)}</b>`;
+    cell.appendChild(label);
+    const canvas = document.createElement("canvas");
+    canvas.width = 260;
+    canvas.height = 120;
+    cell.appendChild(canvas);
+    drawLineChart(canvas, [{ name, values }]);
+    const legend = document.createElement("span");
+    legend.className = "badge";
+    legend.style.borderColor = colors[i % colors.length];
+    legend.textContent = `${group.labels[group.labels.length - 1]}: ${values[values.length - 1]}`;
+    cell.appendChild(legend);
+    grid.appendChild(cell);
+  });
+  wrap.appendChild(grid);
+  return wrap;
+}
+
 function buildSmartView(data) {
   const root = document.createElement("div");
   if (data && typeof data === "object" && !Array.isArray(data)) {
     if (data.trajectories && typeof data.trajectories === "object") {
       root.appendChild(buildTrajectoryChart(data));
     } else {
+      const labeledGroups = [];
+      findLabeledSeriesGroups(data, "", 0, labeledGroups);
+      const consumed = new Set(labeledGroups.flatMap((g) => g.series.map(([, v]) => v)));
+
       const scalars = [];
       const vectors = [];
       collectFields(data, "", 0, scalars, vectors);
       if (scalars.length) root.appendChild(makeBadgeRow(scalars));
-      for (const [path, values] of vectors) root.appendChild(buildVectorView(path, values));
+      for (const group of labeledGroups) root.appendChild(buildLabeledSeriesView(group));
+      for (const [path, values] of vectors) {
+        if (!consumed.has(values)) root.appendChild(buildVectorView(path, values));
+      }
     }
   }
   root.appendChild(makeRawDetails(data));

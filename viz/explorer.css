@@ -52,6 +52,22 @@ header p a { color: var(--accent); margin-left: 8px; }
 }
 .badge-button:hover { filter: brightness(0.97); border-color: var(--accent); }
 
+.labeled-series-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.labeled-series-grid canvas {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
 .compare-engine-heading {
   margin: 14px 0 6px;
   font-size: 0.95rem;
