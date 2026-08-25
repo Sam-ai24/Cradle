@@ -3,10 +3,13 @@ not a fixed demo. Every endpoint here calls the same registered
 `DataConnector`/`SimulationAdapter`/`AIModelAdapter` instances the rest
 of Cradle uses; nothing here is a separate, parallel implementation.
 
-    uvicorn server:app --reload --app-dir viz --port 8743
+    powershell -File scripts/run_explorer.ps1
 
-`--reload` watches this file (and its imports under `src/`) and restarts
-the server automatically on save — edit-and-refresh, no manual restarts.
+That script watches for *.py changes under viz/, src/, and plugins/ via
+`watchfiles`'s own CLI (not `uvicorn --reload`, whose Windows
+multiprocessing reloader got stuck mid-restart during development) and
+restarts the whole process on change — edit-and-refresh, no manual
+restarts.
 """
 
 from __future__ import annotations
