@@ -1,5 +1,14 @@
 const API = "";
 
+// Categorical palette for charts — accent first, then the semantic hues,
+// so a chart's series colors stay visually related to the rest of the UI
+// instead of an arbitrary color wheel.
+const CHART_COLORS = ["#0c7b74", "#b3791f", "#4a5a8a", "#a83b3b", "#5a8a3a", "#8a3a6a", "#3a8a8a", "#6a5a3a"];
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 async function fetchJSON(url, options) {
   const response = await fetch(url, options);
   const body = await response.json().catch(() => null);
@@ -23,6 +32,8 @@ function pushHistory(entry) {
   HISTORY.unshift(entry);
   HISTORY.length = Math.min(HISTORY.length, 50);
   renderHistoryPanel();
+  const stat = document.getElementById("stat-history");
+  if (stat) stat.textContent = historySeq;
 }
 
 function renderHistoryPanel() {
@@ -44,6 +55,17 @@ function renderHistoryPanel() {
     label.className = "history-label";
     label.textContent = entry.label;
     row.append(time, pill, label);
+    if (entry.rerun) {
+      const rerunBtn = document.createElement("button");
+      rerunBtn.type = "button";
+      rerunBtn.className = "history-rerun-btn";
+      rerunBtn.textContent = "Re-run";
+      rerunBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        entry.rerun();
+      });
+      row.appendChild(rerunBtn);
+    }
     li.appendChild(row);
     row.addEventListener("click", () => {
       const existing = li.querySelector(".history-detail");
@@ -82,7 +104,7 @@ function renderResult(container, label, promise, opts) {
       container.innerHTML = "";
       const viewBuilder = opts.mode === "resolve_all" ? () => buildResolveAllView(data) : () => buildSmartView(data);
       container.appendChild(viewBuilder());
-      pushHistory({ label, ok: true, data, viewBuilder });
+      pushHistory({ label, ok: true, data, viewBuilder, rerun: opts.rerun });
     })
     .catch((err) => {
       const cls = err.status === 409 ? "result-skip" : "result-error";
@@ -91,7 +113,7 @@ function renderResult(container, label, promise, opts) {
       pre.className = cls;
       pre.textContent = `${label2}\n${err.message}`;
       container.appendChild(pre);
-      pushHistory({ label, ok: false, status: err.status, message: `${label2}\n${err.message}` });
+      pushHistory({ label, ok: false, status: err.status, message: `${label2}\n${err.message}`, rerun: opts.rerun });
     });
 }
 
@@ -115,6 +137,18 @@ function makeRawDetails(data) {
   details.className = "raw-json";
   const summary = document.createElement("summary");
   summary.textContent = "Show raw JSON";
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.className = "result-copy-btn";
+  copyBtn.textContent = "Copy JSON";
+  copyBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(() => {
+      copyBtn.textContent = "Copied";
+      setTimeout(() => (copyBtn.textContent = "Copy JSON"), 1200);
+    });
+  });
+  summary.appendChild(copyBtn);
   const pre = document.createElement("pre");
   pre.className = "result-ok";
   pre.textContent = JSON.stringify(data, null, 2);
@@ -147,26 +181,25 @@ function drawLineChart(canvas, series, xLabel) {
   const x = (i) => padL + (n === 1 ? 0 : (i / (n - 1)) * (w - padL - padR));
   const y = (v) => h - padB - ((v - minV) / (maxV - minV || 1)) * (h - padT - padB);
 
-  ctx.strokeStyle = "#c9c2b3";
+  ctx.strokeStyle = cssVar("--line-strong") || "#c9c2b3";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(padL, y(minV));
   ctx.lineTo(w - padR, y(minV));
   ctx.stroke();
 
-  ctx.font = "10px ui-monospace, monospace";
-  ctx.fillStyle = "#7a7364";
+  ctx.font = "10px " + (cssVar("--font-mono") || "ui-monospace, monospace");
+  ctx.fillStyle = cssVar("--ink-faint") || "#7a7364";
   ctx.fillText(maxV.toPrecision(4), 2, y(maxV) + 8);
   ctx.fillText(minV.toPrecision(4), 2, y(minV) + 4);
 
-  const colors = ["#7a4b3a", "#3a6a5a", "#4a5a8a", "#8a6a3a", "#8a3a6a", "#3a8a8a", "#5a5a5a", "#8a4a4a"];
   series.forEach((s, si) => {
-    ctx.strokeStyle = colors[si % colors.length];
-    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = CHART_COLORS[si % CHART_COLORS.length];
+    ctx.lineWidth = 1.8;
     if (n === 1) {
       ctx.beginPath();
       ctx.arc(x(0), y(s.values[0]), 3, 0, 2 * Math.PI);
-      ctx.fillStyle = colors[si % colors.length];
+      ctx.fillStyle = CHART_COLORS[si % CHART_COLORS.length];
       ctx.fill();
     } else {
       ctx.beginPath();
@@ -188,22 +221,21 @@ function drawBarChart(canvas, series) {
   const y = (v) => h - padB - ((v - minV) / (maxV - minV || 1)) * (h - padT - padB);
   const bandW = (w - padL - padR) / series.length;
 
-  ctx.font = "10px ui-monospace, monospace";
-  ctx.fillStyle = "#7a7364";
+  ctx.font = "10px " + (cssVar("--font-mono") || "ui-monospace, monospace");
+  ctx.fillStyle = cssVar("--ink-faint") || "#7a7364";
   ctx.fillText(maxV.toPrecision(4), 2, y(maxV) + 8);
   ctx.fillText(minV.toPrecision(4), 2, y(minV) - 2 < 10 ? y(minV) - 2 : y(minV) - 2);
-  ctx.strokeStyle = "#c9c2b3";
+  ctx.strokeStyle = cssVar("--line-strong") || "#c9c2b3";
   ctx.beginPath();
   ctx.moveTo(padL, y0);
   ctx.lineTo(w - padR, y0);
   ctx.stroke();
 
-  const colors = ["#7a4b3a", "#3a6a5a", "#4a5a8a", "#8a6a3a", "#8a3a6a", "#3a8a8a", "#5a5a5a", "#8a4a4a"];
   series.forEach((s, i) => {
     const v = s.values[0];
     const barW = bandW * 0.6;
     const xCenter = padL + bandW * (i + 0.5);
-    ctx.fillStyle = colors[i % colors.length];
+    ctx.fillStyle = CHART_COLORS[i % CHART_COLORS.length];
     const top = Math.min(y(v), y0);
     const height = Math.abs(y(v) - y0);
     ctx.fillRect(xCenter - barW / 2, top, barW, Math.max(height, 1));
@@ -247,11 +279,10 @@ function buildTrajectoryChart(data) {
 
     const legend = document.createElement("div");
     legend.className = "badge-row";
-    const colors = ["#7a4b3a", "#3a6a5a", "#4a5a8a", "#8a6a3a", "#8a3a6a", "#3a8a8a", "#5a5a5a", "#8a4a4a"];
     top.forEach((s, i) => {
       const b = document.createElement("span");
       b.className = "badge";
-      b.style.borderColor = colors[i % colors.length];
+      b.style.borderColor = CHART_COLORS[i % CHART_COLORS.length];
       b.textContent = `${s.name}: ${(isSteadyState ? s.values[0] : s.values[s.values.length - 1]).toPrecision(4)}`;
       legend.appendChild(b);
     });
@@ -335,7 +366,6 @@ function buildLabeledSeriesView(group) {
   // the smaller one into a flat line.
   const grid = document.createElement("div");
   grid.className = "labeled-series-grid";
-  const colors = ["#7a4b3a", "#3a6a5a", "#4a5a8a", "#8a6a3a", "#8a3a6a", "#3a8a8a", "#5a5a5a", "#8a4a4a"];
   group.series.forEach(([name, values], i) => {
     const cell = document.createElement("div");
     const label = document.createElement("p");
@@ -349,7 +379,7 @@ function buildLabeledSeriesView(group) {
     drawLineChart(canvas, [{ name, values }]);
     const legend = document.createElement("span");
     legend.className = "badge";
-    legend.style.borderColor = colors[i % colors.length];
+    legend.style.borderColor = CHART_COLORS[i % CHART_COLORS.length];
     legend.textContent = `${group.labels[group.labels.length - 1]}: ${values[values.length - 1]}`;
     cell.appendChild(legend);
     grid.appendChild(cell);
@@ -488,6 +518,10 @@ function setupInventoryFilters() {
 async function loadInventory() {
   const plugins = await fetchJSON("/api/plugins");
 
+  document.getElementById("stat-data").textContent = plugins.data_connector.length;
+  document.getElementById("stat-sim").textContent = plugins.simulation_adapter.length;
+  document.getElementById("stat-ai").textContent = plugins.ai_model_adapter.length;
+
   const dataList = document.getElementById("inventory-data");
   for (const p of plugins.data_connector) {
     const li = document.createElement("li");
@@ -557,7 +591,10 @@ function setupDataPanel() {
   button.addEventListener("click", () => {
     const curie = input.value.trim();
     if (!curie) return;
-    renderResult(results, `resolve_all("${curie}")`, fetchJSON(`/api/data/resolve?curie=${encodeURIComponent(curie)}`), { mode: "resolve_all" });
+    const label = `resolve_all("${curie}")`;
+    const run = () =>
+      renderResult(results, label, fetchJSON(`/api/data/resolve?curie=${encodeURIComponent(curie)}`), { mode: "resolve_all", rerun: run });
+    run();
   });
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") button.click();
@@ -582,15 +619,20 @@ function setupAiPanel() {
       results.innerHTML = `<pre class="result-error">Invalid JSON input:\n${escapeHtml(err.message)}</pre>`;
       return;
     }
-    renderResult(
-      results,
-      `${select.value}.predict(...)`,
-      fetchJSON(`/api/ai/predict/${select.value}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input }),
-      })
-    );
+    const name = select.value;
+    const label = `${name}.predict(...)`;
+    const run = () =>
+      renderResult(
+        results,
+        label,
+        fetchJSON(`/api/ai/predict/${name}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input }),
+        }),
+        { rerun: run }
+      );
+    run();
   });
 }
 
@@ -612,15 +654,20 @@ function setupSimPanel() {
       results.innerHTML = `<pre class="result-error">Invalid JSON input:\n${escapeHtml(err.message)}</pre>`;
       return;
     }
-    renderResult(
-      results,
-      `${select.value}.run(...)`,
-      fetchJSON(`/api/sim/run/${select.value}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-    );
+    const name = select.value;
+    const label = `${name}.run(...)`;
+    const run = () =>
+      renderResult(
+        results,
+        label,
+        fetchJSON(`/api/sim/run/${name}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+        { rerun: run }
+      );
+    run();
   });
 }
 
@@ -636,7 +683,7 @@ function setupComparePanel() {
     textarea.value = JSON.stringify(example, null, 2);
   });
 
-  document.getElementById("compare-run-btn").addEventListener("click", async () => {
+  document.getElementById("compare-run-btn").addEventListener("click", () => {
     const names = (select.selectedOptions[0]?.dataset.names || "").split(",").filter(Boolean);
     if (!names.length) return;
     let body;
@@ -647,25 +694,47 @@ function setupComparePanel() {
       return;
     }
     const label = `compare[${select.value}]: ${names.join(", ")}`;
-    results.innerHTML = `<p class="pending">Running ${label}...</p>`;
-    const runs = await Promise.all(
-      names.map(async (name) => {
-        try {
-          const data = await fetchJSON(`/api/sim/run/${name}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          });
-          return { name, ok: true, data };
-        } catch (err) {
-          return { name, ok: false, status: err.status, message: err.message };
-        }
-      })
-    );
-    results.innerHTML = "";
-    results.appendChild(buildCompareView(runs));
-    pushHistory({ label, ok: true, viewBuilder: () => buildCompareView(runs) });
+    const run = async () => {
+      results.innerHTML = `<p class="pending">Running ${label}...</p>`;
+      const runs = await Promise.all(
+        names.map(async (name) => {
+          try {
+            const data = await fetchJSON(`/api/sim/run/${name}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            return { name, ok: true, data };
+          } catch (err) {
+            return { name, ok: false, status: err.status, message: err.message };
+          }
+        })
+      );
+      results.innerHTML = "";
+      results.appendChild(buildCompareView(runs));
+      pushHistory({ label, ok: true, viewBuilder: () => buildCompareView(runs), rerun: run });
+    };
+    run();
   });
+}
+
+function setupActiveNav() {
+  const links = Array.from(document.querySelectorAll(".topnav a"));
+  const byId = new Map(links.map((a) => [a.getAttribute("href").slice(1), a]));
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const link = byId.get(entry.target.id);
+        if (!link) continue;
+        link.classList.toggle("active", entry.isIntersecting);
+      }
+    },
+    { rootMargin: "-40% 0px -50% 0px" }
+  );
+  for (const id of byId.keys()) {
+    const section = document.getElementById(id);
+    if (section) observer.observe(section);
+  }
 }
 
 async function main() {
@@ -676,6 +745,7 @@ async function main() {
   setupSimPanel();
   setupComparePanel();
   setupHistoryPanel();
+  setupActiveNav();
 }
 
 main();

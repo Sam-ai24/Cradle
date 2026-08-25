@@ -3,109 +3,162 @@
 <head>
 <meta charset="utf-8" />
 <title>Cradle — Explorer</title>
-<link rel="stylesheet" href="style.css" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="explorer.css" />
 </head>
 <body>
-<header>
-  <h1>Cradle — Explorer</h1>
-  <p>
-    A live interface over the actual plugin registry — every dropdown below is populated
-    from what's really installed right now, and every "Run" button calls the same
-    <code>DataConnector</code>/<code>SimulationAdapter</code>/<code>AIModelAdapter</code>
-    instance the rest of Cradle uses. Nothing here is faked or pre-canned.
-    <a href="index.html">See the repressilator scale-router instead &rarr;</a>
-  </p>
-  <p class="api-links">
-    Want to go past these panels? Every endpoint below is a real, generic
-    HTTP API — open <a href="/docs">/docs</a> for interactive Swagger
-    (try any endpoint, any plugin name, right in the browser) or
-    <a href="/redoc">/redoc</a> for a readable reference. Anything you can
-    do in these panels, you can script yourself against the same API.
-  </p>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="wordmark" href="#top">
+      <span class="wordmark-mark" aria-hidden="true">&#9678;</span>
+      <span>Cradle<span class="wordmark-sub">Explorer</span></span>
+    </a>
+    <nav class="topnav" aria-label="Sections">
+      <a href="#inventory-panel">Registry</a>
+      <a href="#data-panel">Data</a>
+      <a href="#ai-panel">Models</a>
+      <a href="#sim-panel">Simulation</a>
+      <a href="#compare-panel">Compare</a>
+      <a href="#history-panel">Log</a>
+    </nav>
+    <div class="topbar-links">
+      <a href="/docs">API / docs</a>
+      <a href="index.html">Repressilator view</a>
+    </div>
+  </div>
+</div>
+
+<header id="top">
+  <div class="lede">
+    <p class="eyebrow">Live registry interface — not a fixed demo</p>
+    <h1>Every capability Cradle has registered, driven live.</h1>
+    <p class="dek">
+      Each panel below calls the same <code>DataConnector</code> / <code>SimulationAdapter</code> /
+      <code>AIModelAdapter</code> instance the rest of Cradle uses — nothing here is faked,
+      cached for show, or pre-canned. What you see in the registry strip is what's actually
+      importable in this environment right now.
+    </p>
+    <dl id="stats-strip" class="stats-strip" aria-live="polite">
+      <div class="stat"><dt>Data connectors</dt><dd id="stat-data">—</dd></div>
+      <div class="stat"><dt>Simulation adapters</dt><dd id="stat-sim">—</dd></div>
+      <div class="stat"><dt>AI model adapters</dt><dd id="stat-ai">—</dd></div>
+      <div class="stat"><dt>Queries this session</dt><dd id="stat-history">0</dd></div>
+    </dl>
+  </div>
 </header>
 
 <main>
   <section id="inventory-panel" class="panel">
-    <h2>What's actually installed right now</h2>
-    <p class="hint">Live from <code>GET /api/plugins</code> — click any item to jump to a
-      pre-filled example below.</p>
+    <div class="panel-head">
+      <p class="eyebrow">Registry</p>
+      <h2>What's actually installed right now</h2>
+      <p class="hint">Live from <code>GET /api/plugins</code>. Click any row to jump to a
+        pre-filled example below.</p>
+    </div>
     <div id="inventory-columns" class="inventory-columns">
       <div class="inventory-column">
         <h3>Data connectors</h3>
-        <input type="text" class="inventory-filter" id="inventory-data-filter" placeholder="filter…" />
+        <input type="text" class="inventory-filter" id="inventory-data-filter" placeholder="Filter connectors…" />
         <ul id="inventory-data" class="inventory-list"></ul>
       </div>
       <div class="inventory-column">
         <h3>Simulation adapters</h3>
-        <input type="text" class="inventory-filter" id="inventory-sim-filter" placeholder="filter…" />
+        <input type="text" class="inventory-filter" id="inventory-sim-filter" placeholder="Filter adapters…" />
         <ul id="inventory-sim" class="inventory-list"></ul>
       </div>
       <div class="inventory-column">
         <h3>AI model adapters</h3>
-        <input type="text" class="inventory-filter" id="inventory-ai-filter" placeholder="filter…" />
+        <input type="text" class="inventory-filter" id="inventory-ai-filter" placeholder="Filter models…" />
         <ul id="inventory-ai" class="inventory-list"></ul>
       </div>
     </div>
   </section>
 
   <section id="data-panel" class="panel">
-    <h2>Search real biological data</h2>
-    <p class="hint">Fans one CURIE out across every connector that can answer it. Try
-      <code>uniprot:P04637</code> (TP53), <code>pubchem.compound:2244</code> (aspirin), or
-      <code>chembl:CHEMBL25</code>.</p>
+    <div class="panel-head">
+      <p class="eyebrow">Data query</p>
+      <h2>Search real biological data</h2>
+      <p class="hint">Fans one CURIE out across every connector that can answer it. Try
+        <code>uniprot:P04637</code> (TP53), <code>pubchem.compound:2244</code> (aspirin), or
+        <code>chembl:CHEMBL25</code>.</p>
+    </div>
     <div class="row">
       <input id="data-curie" type="text" value="uniprot:P04637" placeholder="namespace:id" />
-      <button id="data-search-btn">Search</button>
+      <button id="data-search-btn" class="btn btn-primary">Search</button>
     </div>
     <div id="data-results" class="results"></div>
   </section>
 
   <section id="ai-panel" class="panel">
-    <h2>Run a real AI model</h2>
+    <div class="panel-head">
+      <p class="eyebrow">Model inference</p>
+      <h2>Run a real AI model</h2>
+      <p class="hint">Embeddings, network inference, perturbation and orchestration adapters —
+        whatever is registered. Optional adapters that need an API key fail honestly, not
+        silently.</p>
+    </div>
     <div class="row">
       <select id="ai-select"></select>
-      <button id="ai-load-example-btn">Load real example input</button>
-      <button id="ai-run-btn">Run</button>
+      <button id="ai-load-example-btn" class="btn btn-ghost">Load real example input</button>
+      <button id="ai-run-btn" class="btn btn-primary">Run</button>
     </div>
     <textarea id="ai-input" rows="6" spellcheck="false"></textarea>
     <div id="ai-results" class="results"></div>
   </section>
 
   <section id="sim-panel" class="panel">
-    <h2>Run a real simulation</h2>
+    <div class="panel-head">
+      <p class="eyebrow">Simulation</p>
+      <h2>Run a real simulation</h2>
+      <p class="hint">From a toy ODE to a genome-scale flux-balance model — pick any registered
+        engine and run its real conformance example.</p>
+    </div>
     <div class="row">
       <select id="sim-select"></select>
-      <button id="sim-load-example-btn">Load real example input</button>
-      <button id="sim-run-btn">Run</button>
+      <button id="sim-load-example-btn" class="btn btn-ghost">Load real example input</button>
+      <button id="sim-run-btn" class="btn btn-primary">Run</button>
     </div>
     <textarea id="sim-input" rows="6" spellcheck="false"></textarea>
     <div id="sim-results" class="results"></div>
   </section>
 
   <section id="compare-panel" class="panel">
-    <h2>Compare every engine registered for one model type</h2>
-    <p class="hint">Groups the simulation adapters above by <code>input_mode</code> and runs
-      every adapter that shares a group against the exact same real model input — e.g. both
-      <code>tellurium</code> and <code>copasi</code> against the same <code>combine_archive</code>,
-      so you can see two independent engines agree (or don't) on the same biology.</p>
+    <div class="panel-head">
+      <p class="eyebrow">Cross-engine comparison</p>
+      <h2>Compare every engine registered for one model type</h2>
+      <p class="hint">Groups the simulation adapters above by <code>input_mode</code> and runs
+        every adapter that shares a group against the exact same real model input — e.g. both
+        <code>tellurium</code> and <code>copasi</code> against the same <code>combine_archive</code>,
+        so you can see two independent engines agree (or don't) on the same biology.</p>
+    </div>
     <div class="row">
       <select id="compare-select"></select>
-      <button id="compare-load-example-btn">Load real example input</button>
-      <button id="compare-run-btn">Run all</button>
+      <button id="compare-load-example-btn" class="btn btn-ghost">Load real example input</button>
+      <button id="compare-run-btn" class="btn btn-primary">Run all</button>
     </div>
     <textarea id="compare-input" rows="6" spellcheck="false"></textarea>
     <div id="compare-results" class="results"></div>
   </section>
 
   <section id="history-panel" class="panel">
-    <h2>Run history — this session</h2>
-    <p class="hint">Every call made from the panels above, kept so you can look back across
-      several queries instead of losing each result the moment you run the next one.</p>
-    <div class="row"><button id="history-clear-btn">Clear history</button></div>
+    <div class="panel-head">
+      <p class="eyebrow">Session log</p>
+      <h2>Run history — this session</h2>
+      <p class="hint">Every call made from the panels above, kept so you can look back across
+        several queries instead of losing each result the moment you run the next one.</p>
+    </div>
+    <div class="row"><button id="history-clear-btn" class="btn btn-ghost">Clear history</button></div>
     <ul id="history-list" class="history-list"></ul>
   </section>
 </main>
+
+<footer class="site-footer">
+  <span>Cradle Explorer — a generated view over <code>cradle.registry</code>, not a separate source of truth.</span>
+</footer>
 
 <script src="explorer.js"></script>
 </body>
