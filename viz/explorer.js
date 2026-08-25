@@ -12,17 +12,77 @@ async function fetchJSON(url, options) {
   return body;
 }
 
+// ---- Run history: every renderResult call is kept here so past queries
+// stay visible instead of being overwritten by the next run.
+const HISTORY = [];
+let historySeq = 0;
+
+function pushHistory(entry) {
+  entry.id = ++historySeq;
+  entry.time = new Date();
+  HISTORY.unshift(entry);
+  HISTORY.length = Math.min(HISTORY.length, 50);
+  renderHistoryPanel();
+}
+
+function renderHistoryPanel() {
+  const list = document.getElementById("history-list");
+  if (!list) return;
+  list.innerHTML = "";
+  for (const entry of HISTORY) {
+    const li = document.createElement("li");
+    li.className = "history-item";
+    const row = document.createElement("div");
+    row.className = "history-row";
+    const pill = document.createElement("span");
+    pill.className = "badge " + (entry.ok ? "badge-ok" : entry.status === 409 ? "badge-skip" : "badge-error");
+    pill.textContent = entry.ok ? "ok" : entry.status === 409 ? "not configured" : "error";
+    const time = document.createElement("span");
+    time.className = "history-time";
+    time.textContent = entry.time.toLocaleTimeString();
+    const label = document.createElement("span");
+    label.className = "history-label";
+    label.textContent = entry.label;
+    row.append(time, pill, label);
+    li.appendChild(row);
+    row.addEventListener("click", () => {
+      const existing = li.querySelector(".history-detail");
+      if (existing) {
+        existing.remove();
+        return;
+      }
+      const detail = document.createElement("div");
+      detail.className = "history-detail";
+      if (entry.ok) {
+        detail.appendChild(entry.viewBuilder ? entry.viewBuilder() : buildSmartView(entry.data));
+      } else {
+        const pre = document.createElement("pre");
+        pre.className = entry.status === 409 ? "result-skip" : "result-error";
+        pre.textContent = entry.message;
+        detail.appendChild(pre);
+      }
+      li.appendChild(detail);
+    });
+    list.appendChild(li);
+  }
+}
+
+function setupHistoryPanel() {
+  document.getElementById("history-clear-btn").addEventListener("click", () => {
+    HISTORY.length = 0;
+    renderHistoryPanel();
+  });
+}
+
 function renderResult(container, label, promise, opts) {
   opts = opts || {};
   container.innerHTML = `<p class="pending">Running ${label}...</p>`;
   promise
     .then((data) => {
       container.innerHTML = "";
-      if (opts.mode === "resolve_all") {
-        container.appendChild(buildResolveAllView(data));
-      } else {
-        container.appendChild(buildSmartView(data));
-      }
+      const viewBuilder = opts.mode === "resolve_all" ? () => buildResolveAllView(data) : () => buildSmartView(data);
+      container.appendChild(viewBuilder());
+      pushHistory({ label, ok: true, data, viewBuilder });
     })
     .catch((err) => {
       const cls = err.status === 409 ? "result-skip" : "result-error";
@@ -31,6 +91,7 @@ function renderResult(container, label, promise, opts) {
       pre.className = cls;
       pre.textContent = `${label2}\n${err.message}`;
       container.appendChild(pre);
+      pushHistory({ label, ok: false, status: err.status, message: `${label2}\n${err.message}` });
     });
 }
 
@@ -256,6 +317,63 @@ function buildSmartView(data) {
   return root;
 }
 
+function computeAgreement(named) {
+  const withTraj = named.filter((n) => n.data && n.data.trajectories);
+  if (withTraj.length < 2) return null;
+  const commonNames = Object.keys(withTraj[0].data.trajectories).filter((name) =>
+    withTraj.every((n) => name in n.data.trajectories)
+  );
+  if (!commonNames.length) return { note: "no variable name is shared across every engine's output.", pairs: [] };
+  const lengths = withTraj.map((n) => n.data.trajectories[commonNames[0]].length);
+  if (new Set(lengths).size !== 1) {
+    return { note: "engines reported different numbers of time points — can't line up final values.", pairs: [] };
+  }
+  const pairs = commonNames.slice(0, 8).map((name) => {
+    const vals = withTraj.map((n) => n.data.trajectories[name][n.data.trajectories[name].length - 1]);
+    const spread = Math.max(...vals) - Math.min(...vals);
+    return [`Δ ${name}`, spread.toPrecision(4)];
+  });
+  return { note: null, pairs };
+}
+
+function buildCompareView(runs) {
+  const root = document.createElement("div");
+  const statusRow = document.createElement("div");
+  statusRow.className = "badge-row";
+  for (const run of runs) {
+    const b = document.createElement("span");
+    b.className = "badge " + (run.ok ? "badge-ok" : run.status === 409 ? "badge-skip" : "badge-error");
+    b.textContent = `${run.name}: ${run.ok ? "ok" : run.status === 409 ? "not configured" : "error"}`;
+    statusRow.appendChild(b);
+  }
+  root.appendChild(statusRow);
+
+  const agreement = computeAgreement(runs.filter((r) => r.ok));
+  if (agreement) {
+    const note = document.createElement("p");
+    note.className = "hint";
+    note.textContent = agreement.note || "Spread across engines' final values for variables every engine reported (0 = perfect agreement):";
+    root.appendChild(note);
+    if (agreement.pairs.length) root.appendChild(makeBadgeRow(agreement.pairs));
+  }
+
+  for (const run of runs) {
+    const heading = document.createElement("h3");
+    heading.className = "compare-engine-heading";
+    heading.textContent = run.name;
+    root.appendChild(heading);
+    if (run.ok) {
+      root.appendChild(buildSmartView(run.data));
+    } else {
+      const pre = document.createElement("pre");
+      pre.className = run.status === 409 ? "result-skip" : "result-error";
+      pre.textContent = run.message;
+      root.appendChild(pre);
+    }
+  }
+  return root;
+}
+
 function buildResolveAllView(data) {
   const root = document.createElement("div");
   const pairs = Object.entries(data).map(([connector, record]) => [
@@ -304,6 +422,21 @@ async function loadInventory() {
       document.getElementById("sim-panel").scrollIntoView({ behavior: "smooth" });
     });
     simList.appendChild(li);
+  }
+
+  const byMode = new Map();
+  for (const p of plugins.simulation_adapter) {
+    const mode = p.input_mode || "toy_dict";
+    if (!byMode.has(mode)) byMode.set(mode, []);
+    byMode.get(mode).push(p.name);
+  }
+  const compareSelect = document.getElementById("compare-select");
+  for (const [mode, names] of byMode.entries()) {
+    const option = document.createElement("option");
+    option.value = mode;
+    option.dataset.names = names.join(",");
+    option.textContent = `${mode} (${names.length} adapter${names.length === 1 ? "" : "s"}: ${names.join(", ")})`;
+    compareSelect.appendChild(option);
   }
 
   const aiSelect = document.getElementById("ai-select");
@@ -399,11 +532,57 @@ function setupSimPanel() {
   });
 }
 
+function setupComparePanel() {
+  const select = document.getElementById("compare-select");
+  const textarea = document.getElementById("compare-input");
+  const results = document.getElementById("compare-results");
+
+  document.getElementById("compare-load-example-btn").addEventListener("click", async () => {
+    const names = (select.selectedOptions[0]?.dataset.names || "").split(",").filter(Boolean);
+    if (!names.length) return;
+    const example = await fetchJSON(`/api/sim/example/${names[0]}`);
+    textarea.value = JSON.stringify(example, null, 2);
+  });
+
+  document.getElementById("compare-run-btn").addEventListener("click", async () => {
+    const names = (select.selectedOptions[0]?.dataset.names || "").split(",").filter(Boolean);
+    if (!names.length) return;
+    let body;
+    try {
+      body = JSON.parse(textarea.value || "{}");
+    } catch (err) {
+      results.innerHTML = `<pre class="result-error">Invalid JSON input:\n${escapeHtml(err.message)}</pre>`;
+      return;
+    }
+    const label = `compare[${select.value}]: ${names.join(", ")}`;
+    results.innerHTML = `<p class="pending">Running ${label}...</p>`;
+    const runs = await Promise.all(
+      names.map(async (name) => {
+        try {
+          const data = await fetchJSON(`/api/sim/run/${name}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          return { name, ok: true, data };
+        } catch (err) {
+          return { name, ok: false, status: err.status, message: err.message };
+        }
+      })
+    );
+    results.innerHTML = "";
+    results.appendChild(buildCompareView(runs));
+    pushHistory({ label, ok: true, viewBuilder: () => buildCompareView(runs) });
+  });
+}
+
 async function main() {
   await loadInventory();
   setupDataPanel();
   setupAiPanel();
   setupSimPanel();
+  setupComparePanel();
+  setupHistoryPanel();
 }
 
 main();

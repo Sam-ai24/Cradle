@@ -79,6 +79,29 @@
     <textarea id="sim-input" rows="6" spellcheck="false"></textarea>
     <div id="sim-results" class="results"></div>
   </section>
+
+  <section id="compare-panel" class="panel">
+    <h2>Compare every engine registered for one model type</h2>
+    <p class="hint">Groups the simulation adapters above by <code>input_mode</code> and runs
+      every adapter that shares a group against the exact same real model input — e.g. both
+      <code>tellurium</code> and <code>copasi</code> against the same <code>combine_archive</code>,
+      so you can see two independent engines agree (or don't) on the same biology.</p>
+    <div class="row">
+      <select id="compare-select"></select>
+      <button id="compare-load-example-btn">Load real example input</button>
+      <button id="compare-run-btn">Run all</button>
+    </div>
+    <textarea id="compare-input" rows="6" spellcheck="false"></textarea>
+    <div id="compare-results" class="results"></div>
+  </section>
+
+  <section id="history-panel" class="panel">
+    <h2>Run history — this session</h2>
+    <p class="hint">Every call made from the panels above, kept so you can look back across
+      several queries instead of losing each result the moment you run the next one.</p>
+    <div class="row"><button id="history-clear-btn">Clear history</button></div>
+    <ul id="history-list" class="history-list"></ul>
+  </section>
 </main>
 
 <script src="explorer.js"></script>
