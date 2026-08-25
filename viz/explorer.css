@@ -499,6 +499,37 @@ textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3
   margin-bottom: 6px;
 }
 
+.table-wrap { margin-bottom: 14px; }
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+.data-table th, .data-table td {
+  padding: 7px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.data-table thead th {
+  background: var(--bg);
+  color: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: var(--accent-soft); }
+.data-table td.num { font-variant-numeric: tabular-nums; text-align: right; }
+
 .compare-engine-heading {
   margin: 18px 0 8px;
   font-family: var(--font-mono);

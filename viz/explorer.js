@@ -388,6 +388,79 @@ function buildLabeledSeriesView(group) {
   return wrap;
 }
 
+// Finds arrays of same-shaped small objects anywhere in the response (e.g.
+// a ranked regulator->target edge list, or a top-N gene-delta list) and
+// renders each as a real table instead of leaving it to raw JSON, which is
+// where structured list results were previously invisible.
+function findObjectArrayTables(obj, prefix, depth, tables) {
+  if (depth > 3 || obj === null || typeof obj !== "object" || Array.isArray(obj)) return;
+  for (const [key, value] of Object.entries(obj)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (
+      Array.isArray(value) &&
+      value.length >= 2 &&
+      value.every((v) => v !== null && typeof v === "object" && !Array.isArray(v))
+    ) {
+      const columns = [];
+      for (const row of value) {
+        for (const [k, v] of Object.entries(row)) {
+          if ((typeof v === "string" || typeof v === "number" || typeof v === "boolean") && !columns.includes(k)) {
+            columns.push(k);
+          }
+        }
+      }
+      if (columns.length) tables.push({ path, columns, rows: value });
+    } else if (value !== null && typeof value === "object") {
+      findObjectArrayTables(value, path, depth + 1, tables);
+    }
+  }
+}
+
+function buildObjectArrayTable(table) {
+  const wrap = document.createElement("div");
+  wrap.className = "table-wrap";
+  const ROW_LIMIT = 15;
+  const note = document.createElement("p");
+  note.className = "hint";
+  note.textContent =
+    table.rows.length > ROW_LIMIT
+      ? `${table.path || "(top level)"}: showing the first ${ROW_LIMIT} of ${table.rows.length} rows (see raw JSON for the rest):`
+      : `${table.path || "(top level)"}: ${table.rows.length} rows.`;
+  wrap.appendChild(note);
+
+  const el = document.createElement("table");
+  el.className = "data-table";
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  for (const col of table.columns) {
+    const th = document.createElement("th");
+    th.textContent = col;
+    headRow.appendChild(th);
+  }
+  thead.appendChild(headRow);
+  el.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  for (const row of table.rows.slice(0, ROW_LIMIT)) {
+    const tr = document.createElement("tr");
+    for (const col of table.columns) {
+      const td = document.createElement("td");
+      const v = row[col];
+      td.textContent = v === undefined ? "" : typeof v === "number" ? (Number.isInteger(v) ? v : v.toPrecision(4)) : String(v);
+      if (typeof v === "number") td.className = "num";
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  el.appendChild(tbody);
+
+  const scroller = document.createElement("div");
+  scroller.className = "table-scroll";
+  scroller.appendChild(el);
+  wrap.appendChild(scroller);
+  return wrap;
+}
+
 function buildSmartView(data) {
   const root = document.createElement("div");
   if (data && typeof data === "object" && !Array.isArray(data)) {
@@ -398,6 +471,9 @@ function buildSmartView(data) {
       findLabeledSeriesGroups(data, "", 0, labeledGroups);
       const consumed = new Set(labeledGroups.flatMap((g) => g.series.map(([, v]) => v)));
 
+      const tables = [];
+      findObjectArrayTables(data, "", 0, tables);
+
       const scalars = [];
       const vectors = [];
       collectFields(data, "", 0, scalars, vectors);
@@ -406,6 +482,7 @@ function buildSmartView(data) {
       for (const [path, values] of vectors) {
         if (!consumed.has(values)) root.appendChild(buildVectorView(path, values));
       }
+      for (const table of tables) root.appendChild(buildObjectArrayTable(table));
     }
   }
   root.appendChild(makeRawDetails(data));
