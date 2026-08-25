@@ -46,6 +46,12 @@ header p a { color: var(--accent); margin-left: 8px; }
 
 .badge-error { background: #f8e6e6; border-color: #dba3a3; }
 
+.badge-button {
+  cursor: pointer;
+  font-family: inherit;
+}
+.badge-button:hover { filter: brightness(0.97); border-color: var(--accent); }
+
 .compare-engine-heading {
   margin: 14px 0 6px;
   font-size: 0.95rem;
@@ -101,6 +107,17 @@ header p a { color: var(--accent); margin-left: 8px; }
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--ink-soft);
+}
+
+.inventory-filter {
+  width: 100%;
+  padding: 5px 8px;
+  margin-bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: ui-monospace, "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+  box-sizing: border-box;
 }
 
 .inventory-list {

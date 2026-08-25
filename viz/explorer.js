@@ -376,21 +376,48 @@ function buildCompareView(runs) {
 
 function buildResolveAllView(data) {
   const root = document.createElement("div");
-  const pairs = Object.entries(data).map(([connector, record]) => [
-    connector,
-    record && record.error ? "no match / not configured" : "match",
-  ]);
   const row = document.createElement("div");
   row.className = "badge-row";
-  for (const [connector, state] of pairs) {
-    const b = document.createElement("span");
-    b.className = state === "match" ? "badge badge-ok" : "badge badge-skip";
-    b.textContent = `${connector}: ${state}`;
+  const detailHost = document.createElement("div");
+  detailHost.className = "chart-wrap";
+
+  for (const [connector, record] of Object.entries(data)) {
+    const isMatch = !(record && record.error);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "badge badge-button " + (isMatch ? "badge-ok" : "badge-skip");
+    b.textContent = `${connector}: ${isMatch ? "match — click to view" : "no match / not configured"}`;
+    b.addEventListener("click", () => {
+      detailHost.innerHTML = "";
+      const heading = document.createElement("h3");
+      heading.className = "compare-engine-heading";
+      heading.textContent = connector;
+      detailHost.appendChild(heading);
+      detailHost.appendChild(isMatch ? buildSmartView(record) : Object.assign(document.createElement("pre"), { className: "result-skip", textContent: record.error }));
+    });
     row.appendChild(b);
   }
   root.appendChild(row);
+  root.appendChild(detailHost);
   root.appendChild(makeRawDetails(data));
   return root;
+}
+
+function setupInventoryFilters() {
+  for (const [filterId, listId] of [
+    ["inventory-data-filter", "inventory-data"],
+    ["inventory-sim-filter", "inventory-sim"],
+    ["inventory-ai-filter", "inventory-ai"],
+  ]) {
+    const input = document.getElementById(filterId);
+    const list = document.getElementById(listId);
+    input.addEventListener("input", () => {
+      const needle = input.value.trim().toLowerCase();
+      for (const li of list.children) {
+        li.style.display = li.textContent.toLowerCase().includes(needle) ? "" : "none";
+      }
+    });
+  }
 }
 
 async function loadInventory() {
@@ -578,6 +605,7 @@ function setupComparePanel() {
 
 async function main() {
   await loadInventory();
+  setupInventoryFilters();
   setupDataPanel();
   setupAiPanel();
   setupSimPanel();
