@@ -45,8 +45,9 @@
   --shadow-card: 0 1px 2px rgba(20, 27, 30, 0.04), 0 6px 20px -12px rgba(20, 27, 30, 0.12);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+/* Bright/scientific-paper look is the default regardless of OS theme;
+   dark is available but opt-in only, via the toggle button in the top bar. */
+:root[data-theme="dark"] {
     --bg: #0f1517;
     --bg-grid: #131b1e;
     --surface: #161f22;
@@ -76,7 +77,6 @@
     --err-line: #6b2c2c;
 
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 26px -14px rgba(0, 0, 0, 0.5);
-  }
 }
 
 * { box-sizing: border-box; }
@@ -166,11 +166,25 @@ h1, h2, h3 { font-family: var(--font-sans); letter-spacing: -0.01em; text-wrap: 
 
 .topbar-links {
   display: flex;
+  align-items: center;
   gap: 16px;
   font-size: 0.82rem;
   color: var(--ink-faint);
   white-space: nowrap;
 }
+
+.theme-toggle {
+  appearance: none;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent-strong); }
 
 /* ---- Header / lede ---------------------------------------------------- */
 
@@ -200,6 +214,20 @@ header h1 {
 }
 
 .dek { margin: 0; color: var(--ink-soft); font-size: 1rem; max-width: 640px; }
+
+.quickstart {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 28px 0 0;
+}
+.quickstart-label {
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+  margin-right: 2px;
+}
+.quickstart .btn { font-weight: 500; font-size: 0.83rem; padding: 7px 14px; }
 
 .stats-strip {
   display: grid;

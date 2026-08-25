@@ -11,6 +11,7 @@ the server automatically on save — edit-and-refresh, no manual restarts.
 
 from __future__ import annotations
 
+import inspect
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -57,6 +58,18 @@ def _find(kind: str, name: str) -> Any:
     raise HTTPException(404, f"no {kind} named '{name}' is registered")
 
 
+def _short_description(instance: Any) -> str | None:
+    """First real sentence of the adapter class's own docstring - the same
+    text a developer reading the source would see, not a separate summary
+    that could drift out of sync with it.
+    """
+    doc = inspect.getdoc(type(instance))
+    if not doc:
+        return None
+    first_para = doc.split("\n\n", 1)[0].replace("\n", " ").strip()
+    return first_para[:220]
+
+
 @app.get("/api/plugins")
 def list_plugins() -> dict[str, list[dict[str, Any]]]:
     """Every registered plugin, by kind — the actual, live inventory,
@@ -72,6 +85,7 @@ def list_plugins() -> dict[str, list[dict[str, Any]]]:
                 "distribution": p.distribution,
                 "contract_type": getattr(p.instance, "contract_type", None),
                 "input_mode": getattr(p.instance, "input_mode", None),
+                "description": _short_description(p.instance),
             }
             for p in plugins
         ]

@@ -99,7 +99,7 @@ function setupHistoryPanel() {
 function renderResult(container, label, promise, opts) {
   opts = opts || {};
   container.innerHTML = `<p class="pending">Running ${label}...</p>`;
-  promise
+  return promise
     .then((data) => {
       container.innerHTML = "";
       const viewBuilder = opts.mode === "resolve_all" ? () => buildResolveAllView(data) : () => buildSmartView(data);
@@ -115,6 +115,20 @@ function renderResult(container, label, promise, opts) {
       container.appendChild(pre);
       pushHistory({ label, ok: false, status: err.status, message: `${label2}\n${err.message}`, rerun: opts.rerun });
     });
+}
+
+// Disables `button` and swaps its label for the duration of `task()`, so a
+// slow adapter (a genome-scale FBA run, a real embedding model) can't be
+// double-submitted by an impatient extra click.
+function withBusy(button, task) {
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Running…";
+  const settle = () => {
+    button.disabled = false;
+    button.textContent = original;
+  };
+  Promise.resolve(task()).then(settle, settle);
 }
 
 function escapeHtml(text) {
@@ -734,7 +748,7 @@ async function loadInventory() {
   for (const p of plugins.data_connector) {
     const li = document.createElement("li");
     li.textContent = p.name;
-    li.title = p.distribution;
+    li.title = p.description ? `${p.description}\n\n(${p.distribution})` : p.distribution;
     li.addEventListener("click", () => {
       document.getElementById("data-curie").scrollIntoView({ behavior: "smooth" });
     });
@@ -751,6 +765,7 @@ async function loadInventory() {
 
     const li = document.createElement("li");
     li.textContent = `${p.name} — ${p.input_mode || "toy_dict"}`;
+    if (p.description) li.title = p.description;
     li.addEventListener("click", () => {
       simSelect.value = p.name;
       document.getElementById("sim-panel").scrollIntoView({ behavior: "smooth" });
@@ -783,6 +798,7 @@ async function loadInventory() {
 
     const li = document.createElement("li");
     li.textContent = `${p.name} — ${p.contract_type}`;
+    if (p.description) li.title = p.description;
     li.addEventListener("click", () => {
       aiSelect.value = p.name;
       document.getElementById("ai-panel").scrollIntoView({ behavior: "smooth" });
@@ -802,7 +818,7 @@ function setupDataPanel() {
     const label = `resolve_all("${curie}")`;
     const run = () =>
       renderResult(results, label, fetchJSON(`/api/data/resolve?curie=${encodeURIComponent(curie)}`), { mode: "resolve_all", rerun: run });
-    run();
+    withBusy(button, run);
   });
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") button.click();
@@ -819,7 +835,8 @@ function setupAiPanel() {
     textarea.value = JSON.stringify(example, null, 2);
   });
 
-  document.getElementById("ai-run-btn").addEventListener("click", () => {
+  const runBtn = document.getElementById("ai-run-btn");
+  runBtn.addEventListener("click", () => {
     let input;
     try {
       input = JSON.parse(textarea.value || "{}");
@@ -840,7 +857,7 @@ function setupAiPanel() {
         }),
         { rerun: run }
       );
-    run();
+    withBusy(runBtn, run);
   });
 }
 
@@ -854,7 +871,8 @@ function setupSimPanel() {
     textarea.value = JSON.stringify(example, null, 2);
   });
 
-  document.getElementById("sim-run-btn").addEventListener("click", () => {
+  const runBtn = document.getElementById("sim-run-btn");
+  runBtn.addEventListener("click", () => {
     let body;
     try {
       body = JSON.parse(textarea.value || "{}");
@@ -875,7 +893,7 @@ function setupSimPanel() {
         }),
         { rerun: run }
       );
-    run();
+    withBusy(runBtn, run);
   });
 }
 
@@ -891,7 +909,8 @@ function setupComparePanel() {
     textarea.value = JSON.stringify(example, null, 2);
   });
 
-  document.getElementById("compare-run-btn").addEventListener("click", () => {
+  const runBtn = document.getElementById("compare-run-btn");
+  runBtn.addEventListener("click", () => {
     const names = (select.selectedOptions[0]?.dataset.names || "").split(",").filter(Boolean);
     if (!names.length) return;
     let body;
@@ -922,7 +941,62 @@ function setupComparePanel() {
       results.appendChild(buildCompareView(runs));
       pushHistory({ label, ok: true, viewBuilder: () => buildCompareView(runs), rerun: run });
     };
-    run();
+    withBusy(runBtn, run);
+  });
+}
+
+async function runQuickstart(kind) {
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  if (kind === "data") {
+    document.getElementById("data-curie").value = "uniprot:P04637";
+    document.getElementById("data-search-btn").click();
+    document.getElementById("data-panel").scrollIntoView({ behavior: "smooth" });
+  } else if (kind === "ai") {
+    document.getElementById("ai-select").value = "esmc";
+    document.getElementById("ai-load-example-btn").click();
+    await wait(500);
+    document.getElementById("ai-run-btn").click();
+    document.getElementById("ai-panel").scrollIntoView({ behavior: "smooth" });
+  } else if (kind === "sim") {
+    document.getElementById("sim-select").value = "cobrapy";
+    document.getElementById("sim-load-example-btn").click();
+    await wait(800);
+    const textarea = document.getElementById("sim-input");
+    try {
+      const parsed = JSON.parse(textarea.value);
+      parsed.config = Object.assign({}, parsed.config, { gene_knockouts: ["b3189"] });
+      textarea.value = JSON.stringify(parsed, null, 2);
+    } catch (err) {
+      /* if the example didn't load in time, Run will just report the JSON error */
+    }
+    document.getElementById("sim-run-btn").click();
+    document.getElementById("sim-panel").scrollIntoView({ behavior: "smooth" });
+  } else if (kind === "compare") {
+    document.getElementById("compare-select").value = "combine_archive";
+    document.getElementById("compare-load-example-btn").click();
+    await wait(500);
+    document.getElementById("compare-run-btn").click();
+    document.getElementById("compare-panel").scrollIntoView({ behavior: "smooth" });
+  }
+}
+
+function setupQuickstart() {
+  document.querySelectorAll("[data-quickstart]").forEach((btn) => {
+    btn.addEventListener("click", () => runQuickstart(btn.dataset.quickstart));
+  });
+}
+
+function setupThemeToggle() {
+  const btn = document.getElementById("theme-toggle-btn");
+  const apply = (theme) => {
+    document.documentElement.dataset.theme = theme;
+    btn.textContent = theme === "dark" ? "☾ Dark" : "☆ Light";
+  };
+  apply(document.documentElement.dataset.theme || "light");
+  btn.addEventListener("click", () => {
+    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    localStorage.setItem("cradle-explorer-theme", next);
+    apply(next);
   });
 }
 
@@ -954,6 +1028,8 @@ async function main() {
   setupComparePanel();
   setupHistoryPanel();
   setupActiveNav();
+  setupThemeToggle();
+  setupQuickstart();
 }
 
 main();

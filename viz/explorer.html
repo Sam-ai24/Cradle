@@ -8,6 +8,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="explorer.css" />
+<script>
+  // Applied before first paint so there's no light->dark flash on load.
+  document.documentElement.dataset.theme = localStorage.getItem("cradle-explorer-theme") || "light";
+</script>
 </head>
 <body>
 
@@ -28,6 +32,7 @@
     <div class="topbar-links">
       <a href="/docs">API / docs</a>
       <a href="index.html">Repressilator view</a>
+      <button id="theme-toggle-btn" class="theme-toggle" type="button" title="Toggle light/dark">&#9788; Light</button>
     </div>
   </div>
 </div>
@@ -42,6 +47,13 @@
       cached for show, or pre-canned. What you see in the registry strip is what's actually
       importable in this environment right now.
     </p>
+    <div class="quickstart">
+      <span class="quickstart-label">New here? Try one:</span>
+      <button type="button" class="btn btn-ghost" data-quickstart="data">Look up a real protein</button>
+      <button type="button" class="btn btn-ghost" data-quickstart="ai">Get a protein embedding</button>
+      <button type="button" class="btn btn-ghost" data-quickstart="sim">Knock out an E. coli gene</button>
+      <button type="button" class="btn btn-ghost" data-quickstart="compare">Compare two simulators</button>
+    </div>
     <dl id="stats-strip" class="stats-strip" aria-live="polite">
       <div class="stat"><dt>Data connectors</dt><dd id="stat-data">—</dd></div>
       <div class="stat"><dt>Simulation adapters</dt><dd id="stat-sim">—</dd></div>
