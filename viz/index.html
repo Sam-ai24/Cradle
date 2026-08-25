@@ -13,9 +13,10 @@
   <h1>Cradle — Repressilator Explorer</h1>
   <p>
     Phase 10 scale-router: a regulatory-network view (pathway scale) linked to real
-    AlphaFold structures (molecular scale) of the same three proteins, plus two independent
-    simulation runs compared under one shared time-slider. Every node, edge, and structure
-    here is real data already validated in Phases 1–4 — nothing on this page is synthetic.
+    AlphaFold structures (molecular scale) of the same three proteins, plus every registered
+    engine's live simulation run compared under one shared time-slider. Every node, edge, and
+    structure here is real data already validated in Phases 1–4; the comparison below is not
+    pre-baked either — it calls the same live API the Explorer does, every time you load this page.
     <a href="explorer.html">Explore every registered capability instead &rarr;</a>
   </p>
 </header>
@@ -35,21 +36,18 @@
   </section>
 
   <section id="comparison-panel">
-    <h2>Comparing two simulation runs — one shared time-slider</h2>
+    <h2>Comparing every registered engine — one shared time-slider</h2>
     <p class="hint">
-      The same published <code>repressilator.omex</code> archive (Phase 4), run on two
-      independently registered adapters (Phase 2). Drag the slider; both charts move together.
+      The same published <code>repressilator.omex</code> archive (Phase 4), run live just now
+      on every currently-registered <code>combine_archive</code> adapter (Phase 2) — not a
+      fixed pair, not pre-baked numbers: whatever engines <code>GET /api/plugins</code> reports
+      right now get a chart. Pick a species and drag the slider; every chart moves together.
     </p>
-    <div class="charts">
-      <div class="chart-block">
-        <h3>Tellurium</h3>
-        <svg id="chart-tellurium" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
-      </div>
-      <div class="chart-block">
-        <h3>COPASI</h3>
-        <svg id="chart-copasi" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
-      </div>
+    <div class="row">
+      <label for="species-select" class="hint" style="margin:0;">Species:</label>
+      <select id="species-select"></select>
     </div>
+    <div class="charts" id="charts-container"></div>
     <input type="range" id="time-slider" min="0" max="0" value="0" step="1" />
     <p id="time-readout" class="hint"></p>
   </section>

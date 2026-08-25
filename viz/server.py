@@ -16,7 +16,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -168,5 +168,22 @@ def sim_run(name: str, req: SimulateRequest) -> dict[str, Any]:
         raise HTTPException(400, str(exc)) from exc
 
 
+class NoCacheStaticFiles(StaticFiles):
+    """Plain `StaticFiles` lets the browser cache HTML/CSS/JS aggressively
+    with no revalidation, which silently served stale `explorer.css` and
+    `app.js` after edits during this same session (confirmed live: a
+    function's own source, read back via `.toString()`, was still the
+    pre-edit version after a manual reload) - exactly the "can't see what
+    you're editing" failure hot-reload was supposed to prevent. These files
+    are actively edited during development, not versioned production
+    assets, so never cache them.
+    """
+
+    def file_response(self, *args: Any, **kwargs: Any) -> Response:
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+
 # Static frontend last, so /api/* above always wins over the catch-all.
-app.mount("/", StaticFiles(directory=str(Path(__file__).parent), html=True), name="static")
+app.mount("/", NoCacheStaticFiles(directory=str(Path(__file__).parent), html=True), name="static")

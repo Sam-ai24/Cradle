@@ -1,15 +1,14 @@
 // Cradle Phase 10: the scale-router. Loads real, already-validated Cradle
-// data (Phase 1-4's repressilator, Phase 2's two adapters, Phase 3's real
-// AlphaFold structures) and links a pathway-scale view, a molecular-scale
-// view, and a two-run comparison behind one shared time-slider state.
+// data (Phase 1-4's repressilator, Phase 3's real AlphaFold structures) and
+// links a pathway-scale view, a molecular-scale view, and a comparison
+// across every currently-registered combine_archive engine (queried live
+// from the same API the Explorer uses, not a fixed pair of pre-baked runs)
+// behind one shared time-slider state.
 
 const CHART_PADDING = 24;
 
 async function main() {
-  const [graph, trajectories] = await Promise.all([
-    fetch("data/repressilator_graph.json").then((r) => r.json()),
-    fetch("data/repressilator_trajectories.json").then((r) => r.json()),
-  ]);
+  const graph = await fetch("data/repressilator_graph.json").then((r) => r.json());
 
   const viewer = await molstar.Viewer.create("molstar-app", {
     layoutIsExpanded: false,
@@ -74,34 +73,121 @@ async function main() {
     });
   });
 
-  setupComparison(trajectories);
+  await setupComparison();
 }
 
-function setupComparison(trajectories) {
-  const tellurium = trajectories.tellurium;
-  const copasi = trajectories.copasi;
-
-  const telluriumSvg = document.getElementById("chart-tellurium");
-  const copasiSvg = document.getElementById("chart-copasi");
-
-  const telluriumChart = drawChart(telluriumSvg, tellurium.t, tellurium.PX);
-  const copasiChart = drawChart(copasiSvg, copasi.t, copasi.PX);
-
+// Runs the real repressilator.omex archive live against every registered
+// combine_archive-input_mode simulation adapter - whatever GET /api/plugins
+// reports right now, not a hardcoded tellurium/copasi pair - and lets the
+// user pick which of the model's real species to plot, instead of a
+// hardcoded PX.
+async function setupComparison() {
+  const chartsContainer = document.getElementById("charts-container");
+  const speciesSelect = document.getElementById("species-select");
   const slider = document.getElementById("time-slider");
   const readout = document.getElementById("time-readout");
-  slider.max = String(tellurium.t.length - 1);
+
+  chartsContainer.innerHTML = '<p class="hint">Running every registered combine_archive engine live…</p>';
+
+  const plugins = await fetch("/api/plugins").then((r) => r.json());
+  const engineNames = plugins.simulation_adapter
+    .filter((p) => p.input_mode === "combine_archive")
+    .map((p) => p.name);
+
+  if (!engineNames.length) {
+    chartsContainer.innerHTML = '<p class="hint">No combine_archive simulation adapter is currently registered.</p>';
+    return;
+  }
+
+  const runs = await Promise.all(
+    engineNames.map(async (name) => {
+      try {
+        const example = await fetch(`/api/sim/example/${name}`).then((r) => r.json());
+        const res = await fetch(`/api/sim/run/${name}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(example),
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.detail || `HTTP ${res.status}`);
+        return { name, ok: true, data: body };
+      } catch (err) {
+        return { name, ok: false, error: err.message };
+      }
+    })
+  );
+
+  const ok = runs.filter((r) => r.ok);
+  chartsContainer.innerHTML = "";
+
+  const speciesSet = new Set();
+  for (const run of ok) for (const key of Object.keys(run.data.trajectories)) speciesSet.add(key);
+  const species = [...speciesSet].sort();
+
+  speciesSelect.innerHTML = "";
+  for (const key of species) {
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = key;
+    speciesSelect.appendChild(option);
+  }
+  if (species.includes("PX")) speciesSelect.value = "PX";
+
+  const charts = {};
+  for (const run of runs) {
+    const block = document.createElement("div");
+    block.className = "chart-block" + (run.ok ? "" : " chart-missing");
+    const heading = document.createElement("h3");
+    heading.textContent = run.name;
+    block.appendChild(heading);
+    if (run.ok) {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 600 220");
+      svg.setAttribute("preserveAspectRatio", "none");
+      block.appendChild(svg);
+      charts[run.name] = { svg, data: run.data };
+    } else {
+      const note = document.createElement("p");
+      note.textContent = `Not available right now: ${run.error}`;
+      block.appendChild(note);
+    }
+    chartsContainer.appendChild(block);
+  }
+
+  const longestRun = ok.reduce((a, b) => (a.data.t.length >= b.data.t.length ? a : b), ok[0]);
+  slider.max = String((longestRun ? longestRun.data.t.length : 1) - 1);
+
+  let chartHandles = {};
+
+  function redraw() {
+    const key = speciesSelect.value;
+    chartHandles = {};
+    for (const [name, chart] of Object.entries(charts)) {
+      const values = chart.data.trajectories[key] || chart.data.t.map(() => 0);
+      chartHandles[name] = drawChart(chart.svg, chart.data.t, values);
+    }
+    update();
+  }
 
   function update() {
     const index = Number(slider.value);
-    telluriumChart.setMarker(index);
-    copasiChart.setMarker(index);
-    readout.textContent =
-      `t = ${tellurium.t[index].toFixed(1)}  |  Tellurium PX = ${tellurium.PX[index].toFixed(1)}` +
-      `  |  COPASI PX = ${copasi.PX[index].toFixed(1)}`;
+    const key = speciesSelect.value;
+    const parts = [];
+    let tLabel = null;
+    for (const [name, chart] of Object.entries(charts)) {
+      const t = chart.data.t;
+      const idx = Math.min(index, t.length - 1);
+      chartHandles[name].setMarker(idx);
+      if (tLabel === null) tLabel = t[idx];
+      const values = chart.data.trajectories[key];
+      parts.push(`${name} ${key} = ${values ? values[idx].toFixed(2) : "n/a"}`);
+    }
+    readout.textContent = `t ≈ ${(tLabel ?? 0).toFixed(1)}  |  ${parts.join("  |  ")}`;
   }
 
+  speciesSelect.addEventListener("change", redraw);
   slider.addEventListener("input", update);
-  update();
+  if (ok.length) redraw();
 }
 
 function drawChart(svg, times, values) {

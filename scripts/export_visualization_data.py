@@ -1,15 +1,21 @@
 """Phase 10: export real Cradle data into the static JSON/structure files
 the local visualization page reads. Run once, from the repo root, with
-Phase 1/2/3 dependencies installed:
+Phase 1/3 dependencies installed:
 
     python scripts/export_visualization_data.py
 
-Writes viz/data/repressilator_graph.json, viz/data/repressilator_trajectories.json,
-and viz/data/structures/<accession>.pdb — real structure files downloaded
-once here (server-side, no CORS concerns) rather than fetched live by the
-browser from alphafold.ebi.ac.uk, which has no CORS headers and would
-likely fail a live cross-origin fetch. Not part of the installed `cradle`
-package - a one-time data-preparation step, like curate_repressilator.py.
+Writes viz/data/repressilator_graph.json (the curated regulatory topology
+plus AlphaFold structure mappings — this genuinely is a one-time curation
+step, like curate_repressilator.py) and viz/data/structures/<accession>.pdb
+— real structure files downloaded once here (server-side, no CORS
+concerns) rather than fetched live by the browser from alphafold.ebi.ac.uk,
+which has no CORS headers and would likely fail a live cross-origin fetch.
+
+Simulation trajectories are NOT exported here any more: index.html's
+comparison panel now calls the live Explorer API (GET /api/plugins, then
+GET/POST /api/sim/example|run/{name}) for every registered combine_archive
+engine at load time, instead of reading a pre-baked pair of runs — so
+that panel reflects whatever's actually registered, not a frozen snapshot.
 """
 
 from __future__ import annotations
@@ -23,11 +29,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import libsbml  # noqa: E402
 
 from cradle.knowledge.http import HttpError, get_json, get_text  # noqa: E402
-from cradle.registry import discover  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = REPO_ROOT / "models" / "repressilator" / "repressilator.xml"
-ARCHIVE_PATH = REPO_ROOT / "models" / "repressilator" / "repressilator.omex"
 OUTPUT_DIR = REPO_ROOT / "viz" / "data"
 STRUCTURES_DIR = OUTPUT_DIR / "structures"
 
@@ -98,20 +102,6 @@ def download_structures(accession_by_species: dict[str, str]) -> dict:
     return structure_by_species
 
 
-def export_trajectories() -> dict:
-    print("Running the published repressilator archive on Tellurium and COPASI...")
-    trajectories = {}
-    for entry_point_name in ("tellurium", "copasi"):
-        for plugin in discover("simulation_adapter"):
-            if plugin.entry_point_name == entry_point_name:
-                result = plugin.instance.run({"combine_archive": str(ARCHIVE_PATH)}, {})
-                trajectories[entry_point_name] = {
-                    "t": result["t"],
-                    "PX": result["trajectories"]["PX"],
-                }
-    return trajectories
-
-
 def main() -> int:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -124,11 +114,7 @@ def main() -> int:
 
     (OUTPUT_DIR / "repressilator_graph.json").write_text(json.dumps(graph, indent=2))
 
-    trajectories = export_trajectories()
-    (OUTPUT_DIR / "repressilator_trajectories.json").write_text(json.dumps(trajectories, indent=2))
-
     print(f"\nWrote {OUTPUT_DIR / 'repressilator_graph.json'}")
-    print(f"Wrote {OUTPUT_DIR / 'repressilator_trajectories.json'}")
     print(f"Downloaded {len(structures)} real structure files to {STRUCTURES_DIR}")
     return 0
 
