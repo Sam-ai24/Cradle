@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Cradle — Explorer</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="explorer.css" />
+</head>
+<body>
+<header>
+  <h1>Cradle — Explorer</h1>
+  <p>
+    A live interface over the actual plugin registry — every dropdown below is populated
+    from what's really installed right now, and every "Run" button calls the same
+    <code>DataConnector</code>/<code>SimulationAdapter</code>/<code>AIModelAdapter</code>
+    instance the rest of Cradle uses. Nothing here is faked or pre-canned.
+    <a href="index.html">See the repressilator scale-router instead &rarr;</a>
+  </p>
+  <p class="api-links">
+    Want to go past these panels? Every endpoint below is a real, generic
+    HTTP API — open <a href="/docs">/docs</a> for interactive Swagger
+    (try any endpoint, any plugin name, right in the browser) or
+    <a href="/redoc">/redoc</a> for a readable reference. Anything you can
+    do in these panels, you can script yourself against the same API.
+  </p>
+</header>
+
+<main>
+  <section id="inventory-panel" class="panel">
+    <h2>What's actually installed right now</h2>
+    <p class="hint">Live from <code>GET /api/plugins</code> — click any item to jump to a
+      pre-filled example below.</p>
+    <div id="inventory-columns" class="inventory-columns">
+      <div class="inventory-column">
+        <h3>Data connectors</h3>
+        <ul id="inventory-data" class="inventory-list"></ul>
+      </div>
+      <div class="inventory-column">
+        <h3>Simulation adapters</h3>
+        <ul id="inventory-sim" class="inventory-list"></ul>
+      </div>
+      <div class="inventory-column">
+        <h3>AI model adapters</h3>
+        <ul id="inventory-ai" class="inventory-list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="data-panel" class="panel">
+    <h2>Search real biological data</h2>
+    <p class="hint">Fans one CURIE out across every connector that can answer it. Try
+      <code>uniprot:P04637</code> (TP53), <code>pubchem.compound:2244</code> (aspirin), or
+      <code>chembl:CHEMBL25</code>.</p>
+    <div class="row">
+      <input id="data-curie" type="text" value="uniprot:P04637" placeholder="namespace:id" />
+      <button id="data-search-btn">Search</button>
+    </div>
+    <div id="data-results" class="results"></div>
+  </section>
+
+  <section id="ai-panel" class="panel">
+    <h2>Run a real AI model</h2>
+    <div class="row">
+      <select id="ai-select"></select>
+      <button id="ai-load-example-btn">Load real example input</button>
+      <button id="ai-run-btn">Run</button>
+    </div>
+    <textarea id="ai-input" rows="6" spellcheck="false"></textarea>
+    <div id="ai-results" class="results"></div>
+  </section>
+
+  <section id="sim-panel" class="panel">
+    <h2>Run a real simulation</h2>
+    <div class="row">
+      <select id="sim-select"></select>
+      <button id="sim-load-example-btn">Load real example input</button>
+      <button id="sim-run-btn">Run</button>
+    </div>
+    <textarea id="sim-input" rows="6" spellcheck="false"></textarea>
+    <div id="sim-results" class="results"></div>
+  </section>
+</main>
+
+<script src="explorer.js"></script>
+</body>
+</html>
