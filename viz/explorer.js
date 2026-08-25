@@ -461,6 +461,96 @@ function buildObjectArrayTable(table) {
   return wrap;
 }
 
+function isMonotonic(values) {
+  let increasing = true;
+  let decreasing = true;
+  for (let i = 1; i < values.length; i++) {
+    if (values[i] <= values[i - 1]) increasing = false;
+    if (values[i] >= values[i - 1]) decreasing = false;
+  }
+  return increasing || decreasing;
+}
+
+// Finds exactly-two same-length numeric arrays at one object level (e.g. a
+// dose-response curve's `doses` + `responses`) and treats them as an X/Y
+// pair rather than two independent series — the monotonic one (doses
+// always are, by construction) is taken as the X axis so this works
+// without hardcoding either array's name.
+function findXYPairs(obj, prefix, depth, pairs, consumed) {
+  if (depth > 3 || obj === null || typeof obj !== "object" || Array.isArray(obj)) return;
+  const entries = Object.entries(obj);
+  const numArrays = entries.filter(([, v]) => isNumberArray(v) && v.length >= 3 && !consumed.has(v));
+  if (numArrays.length === 2) {
+    const [a, b] = numArrays;
+    const xFirst = isMonotonic(a[1]) || !isMonotonic(b[1]);
+    const [xKey, xValues] = xFirst ? a : b;
+    const [yKey, yValues] = xFirst ? b : a;
+    pairs.push({ path: prefix, xKey, xValues, yKey, yValues });
+    consumed.add(xValues);
+    consumed.add(yValues);
+  }
+  for (const [key, value] of entries) {
+    if (value !== null && typeof value === "object") {
+      findXYPairs(value, prefix ? `${prefix}.${key}` : key, depth + 1, pairs, consumed);
+    }
+  }
+}
+
+function drawXYChart(canvas, xValues, yValues, useLogX) {
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width, h = canvas.height;
+  const padL = 46, padB = 22, padT = 10, padR = 10;
+  ctx.clearRect(0, 0, w, h);
+  const tx = useLogX ? (v) => Math.log10(v) : (v) => v;
+  const xs = xValues.map(tx);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(0, ...yValues), maxY = Math.max(...yValues, minY + 1e-9);
+  const x = (v) => padL + ((v - minX) / (maxX - minX || 1)) * (w - padL - padR);
+  const y = (v) => h - padB - ((v - minY) / (maxY - minY || 1)) * (h - padT - padB);
+
+  ctx.strokeStyle = cssVar("--line-strong") || "#c9c2b3";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, y(minY));
+  ctx.lineTo(w - padR, y(minY));
+  ctx.stroke();
+
+  ctx.font = "10px " + (cssVar("--font-mono") || "ui-monospace, monospace");
+  ctx.fillStyle = cssVar("--ink-faint") || "#7a7364";
+  ctx.fillText(maxY.toPrecision(3), 2, y(maxY) + 8);
+  ctx.fillText(minY.toPrecision(3), 2, y(minY) + 4);
+  ctx.fillText(xValues[0].toPrecision(3), padL - 4, h - 6);
+  ctx.fillText(xValues[xValues.length - 1].toPrecision(3), w - padR - 34, h - 6);
+
+  ctx.strokeStyle = CHART_COLORS[0];
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  xs.forEach((xv, i) => (i === 0 ? ctx.moveTo(x(xv), y(yValues[i])) : ctx.lineTo(x(xv), y(yValues[i]))));
+  ctx.stroke();
+  ctx.fillStyle = CHART_COLORS[0];
+  xs.forEach((xv, i) => {
+    ctx.beginPath();
+    ctx.arc(x(xv), y(yValues[i]), 2.5, 0, 2 * Math.PI);
+    ctx.fill();
+  });
+}
+
+function buildXYPairView(pair) {
+  const wrap = document.createElement("div");
+  wrap.className = "chart-wrap";
+  const useLogX = pair.xValues.every((v) => v > 0) && Math.max(...pair.xValues) / Math.min(...pair.xValues) > 100;
+  const note = document.createElement("p");
+  note.className = "hint";
+  note.textContent = `${pair.path ? pair.path + ": " : ""}${pair.yKey} vs ${pair.xKey}, ${pair.xValues.length} points${useLogX ? " (log-scale x-axis)" : ""}:`;
+  wrap.appendChild(note);
+  const canvas = document.createElement("canvas");
+  canvas.width = 560;
+  canvas.height = 200;
+  wrap.appendChild(canvas);
+  drawXYChart(canvas, pair.xValues, pair.yValues, useLogX);
+  return wrap;
+}
+
 function buildSmartView(data) {
   const root = document.createElement("div");
   if (data && typeof data === "object" && !Array.isArray(data)) {
@@ -471,6 +561,9 @@ function buildSmartView(data) {
       findLabeledSeriesGroups(data, "", 0, labeledGroups);
       const consumed = new Set(labeledGroups.flatMap((g) => g.series.map(([, v]) => v)));
 
+      const xyPairs = [];
+      findXYPairs(data, "", 0, xyPairs, consumed);
+
       const tables = [];
       findObjectArrayTables(data, "", 0, tables);
 
@@ -479,6 +572,7 @@ function buildSmartView(data) {
       collectFields(data, "", 0, scalars, vectors);
       if (scalars.length) root.appendChild(makeBadgeRow(scalars));
       for (const group of labeledGroups) root.appendChild(buildLabeledSeriesView(group));
+      for (const pair of xyPairs) root.appendChild(buildXYPairView(pair));
       for (const [path, values] of vectors) {
         if (!consumed.has(values)) root.appendChild(buildVectorView(path, values));
       }
