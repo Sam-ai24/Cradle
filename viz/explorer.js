@@ -315,20 +315,52 @@ function buildVectorView(name, values) {
 // response tree (bounded depth) - handles both flat sim results and the
 // AI-adapter `{output: {...}, provenance: {...}}` wrapper shape without
 // hardcoding either one by name.
-function collectFields(obj, prefix, depth, scalars, vectors) {
+function collectFields(obj, prefix, depth, scalars, vectors, excluded) {
   if (depth > 3 || obj === null || typeof obj !== "object") return;
   for (const [key, value] of Object.entries(obj)) {
     const path = prefix ? `${prefix}.${key}` : key;
-    if (isNumberArray(value)) {
+    if (excluded && excluded.has(value)) {
+      continue; // rendered separately (e.g. as a ranked-dict table)
+    } else if (isNumberArray(value)) {
       if (value.length > 16) vectors.push([path, value]);
     } else if (Array.isArray(value)) {
       // short arrays / arrays-of-objects: leave for raw JSON
     } else if (value !== null && typeof value === "object") {
-      collectFields(value, path, depth + 1, scalars, vectors);
+      collectFields(value, path, depth + 1, scalars, vectors, excluded);
     } else if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
       scalars.push([path, value]);
     }
   }
+}
+
+// Finds plain objects that are really a flat lookup of name -> number (e.g.
+// a per-gene perturbation-response delta map) and treats them as a ranked
+// table instead of exploding into dozens of individual badges via
+// collectFields.
+function findNumericDicts(obj, prefix, depth, dicts, excluded) {
+  if (depth > 3 || obj === null || typeof obj !== "object" || Array.isArray(obj)) return;
+  for (const [key, value] of Object.entries(obj)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+      const entries = Object.entries(value);
+      const allNumeric = entries.length >= 4 && entries.every(([, v]) => typeof v === "number");
+      if (allNumeric) {
+        dicts.push({ path, entries });
+        excluded.add(value);
+      } else {
+        findNumericDicts(value, path, depth + 1, dicts, excluded);
+      }
+    }
+  }
+}
+
+function buildNumericDictTable(dict) {
+  const sorted = [...dict.entries].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+  return buildObjectArrayTable({
+    path: dict.path,
+    columns: ["key", "value"],
+    rows: sorted.map(([k, v]) => ({ key: k, value: v })),
+  });
 }
 
 // Finds {category labels} + {one or more parallel numeric series of the
@@ -567,9 +599,13 @@ function buildSmartView(data) {
       const tables = [];
       findObjectArrayTables(data, "", 0, tables);
 
+      const numericDicts = [];
+      const dictExcluded = new Set();
+      findNumericDicts(data, "", 0, numericDicts, dictExcluded);
+
       const scalars = [];
       const vectors = [];
-      collectFields(data, "", 0, scalars, vectors);
+      collectFields(data, "", 0, scalars, vectors, dictExcluded);
       if (scalars.length) root.appendChild(makeBadgeRow(scalars));
       for (const group of labeledGroups) root.appendChild(buildLabeledSeriesView(group));
       for (const pair of xyPairs) root.appendChild(buildXYPairView(pair));
@@ -577,6 +613,7 @@ function buildSmartView(data) {
         if (!consumed.has(values)) root.appendChild(buildVectorView(path, values));
       }
       for (const table of tables) root.appendChild(buildObjectArrayTable(table));
+      for (const dict of numericDicts) root.appendChild(buildNumericDictTable(dict));
     }
   }
   root.appendChild(makeRawDetails(data));
