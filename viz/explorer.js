@@ -756,12 +756,14 @@ async function loadInventory() {
   }
 
   const simSelect = document.getElementById("sim-select");
+  const networkSelect = document.getElementById("network-select");
   const simList = document.getElementById("inventory-sim");
   for (const p of plugins.simulation_adapter) {
     const option = document.createElement("option");
     option.value = p.name;
     option.textContent = `${p.name} (${p.input_mode || "toy_dict"})`;
     simSelect.appendChild(option);
+    networkSelect.appendChild(option.cloneNode(true));
 
     const li = document.createElement("li");
     li.textContent = `${p.name} — ${p.input_mode || "toy_dict"}`;
@@ -897,6 +899,135 @@ function setupSimPanel() {
   });
 }
 
+let _networkViewerPromise = null;
+function getNetworkViewer() {
+  if (!_networkViewerPromise) {
+    _networkViewerPromise = molstar.Viewer.create("network-molstar", {
+      layoutIsExpanded: false,
+      layoutShowControls: false,
+      layoutShowSequence: false,
+      layoutShowLog: false,
+      layoutShowLeftPanel: false,
+      viewportShowExpand: false,
+      viewportShowSelectionMode: false,
+      viewportShowAnimation: false,
+    });
+  }
+  return _networkViewerPromise;
+}
+
+function setupNetworkPanel() {
+  const select = document.getElementById("network-select");
+  const status = document.getElementById("network-status");
+  const cyContainer = document.getElementById("network-cy");
+
+  document.getElementById("network-build-btn").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    const name = select.value;
+    status.textContent = `Loading ${name}'s real example model...`;
+    cyContainer.innerHTML = "";
+    withBusy(button, async () => {
+      try {
+        const example = await fetchJSON(`/api/sim/example/${name}`);
+        status.textContent = `Deriving a network from ${name}'s SBML...`;
+        const graph = await fetchJSON("/api/network/build", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: example.model }),
+        });
+        status.textContent = graph.truncated
+          ? `Showing the ${graph.n_species_shown} most-connected of ${graph.n_species_total} species (and the ${graph.n_reactions_shown} of ${graph.n_reactions_total} reactions that touch them) — too many to render in full.`
+          : `${graph.n_species_shown} species, ${graph.n_reactions_shown} reactions — showing all of them.`;
+        renderNetworkGraph(graph.elements);
+        pushHistory({
+          label: `network.build(${name})`,
+          ok: true,
+          data: graph,
+          viewBuilder: () => buildSmartView({ n_species_total: graph.n_species_total, n_reactions_total: graph.n_reactions_total, truncated: graph.truncated }),
+        });
+      } catch (err) {
+        status.textContent = "";
+        cyContainer.innerHTML = `<pre class="${err.status === 409 ? "result-skip" : "result-error"}" style="margin:0;padding:14px;">${escapeHtml(err.message)}</pre>`;
+        pushHistory({ label: `network.build(${name})`, ok: false, status: err.status, message: err.message });
+      }
+    });
+  });
+}
+
+function renderNetworkGraph(elements) {
+  const cyContainer = document.getElementById("network-cy");
+  const structureNote = document.getElementById("network-structure-note");
+  const cy = cytoscape({
+    container: cyContainer,
+    elements,
+    style: [
+      {
+        selector: "node",
+        style: {
+          label: "data(label)",
+          "text-valign": "center",
+          "text-halign": "center",
+          "font-size": 9,
+          "font-family": "IBM Plex Mono, monospace",
+          "text-wrap": "ellipsis",
+          "text-max-width": "42px",
+        },
+      },
+      {
+        selector: "node[kind='species']",
+        style: { "background-color": "#0c7b74", color: "#f4fffd", width: 46, height: 46, shape: "ellipse" },
+      },
+      {
+        selector: "node[kind='reaction']",
+        style: { "background-color": "#8b9a9c", color: "#141b1e", width: 30, height: 30, shape: "round-rectangle", "font-size": 7 },
+      },
+      {
+        selector: "node[?curie]",
+        style: { "border-width": 3, "border-color": "#b3791f" },
+      },
+      {
+        selector: "edge",
+        style: {
+          "curve-style": "bezier",
+          "target-arrow-shape": "triangle",
+          "line-color": "#c3cbc7",
+          "target-arrow-color": "#c3cbc7",
+          width: 1.4,
+        },
+      },
+    ],
+    layout: { name: elements.nodes.length > 25 ? "cose" : "circle" },
+  });
+
+  cy.on("tap", "node", async (event) => {
+    const data = event.target.data();
+    if (data.kind === "reaction") {
+      structureNote.textContent = `${data.label}: a reaction node, not a species — nothing to load a structure for.`;
+      return;
+    }
+    if (!data.curie) {
+      structureNote.textContent = `${data.label}: no UniProt annotation on this species in the SBML — nothing to resolve a structure from.`;
+      return;
+    }
+    const accession = data.curie.split(":")[1];
+    structureNote.textContent = `${data.label} (${data.curie}): checking AlphaFold DB...`;
+    try {
+      const res = await fetch(`/api/structure/${accession}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `HTTP ${res.status}`);
+      }
+      const pdbText = await res.text();
+      const blobUrl = URL.createObjectURL(new Blob([pdbText], { type: "text/plain" }));
+      const viewer = await getNetworkViewer();
+      await viewer.loadStructureFromUrl(blobUrl, "pdb", false, { label: data.label });
+      structureNote.textContent = `${data.label} (${data.curie}): real AlphaFold structure loaded.`;
+    } catch (err) {
+      structureNote.textContent = `${data.label} (${data.curie}): no structure available — ${err.message}`;
+    }
+  });
+}
+
 function setupComparePanel() {
   const select = document.getElementById("compare-select");
   const textarea = document.getElementById("compare-input");
@@ -1025,6 +1156,7 @@ async function main() {
   setupDataPanel();
   setupAiPanel();
   setupSimPanel();
+  setupNetworkPanel();
   setupComparePanel();
   setupHistoryPanel();
   setupActiveNav();

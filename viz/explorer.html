@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/molstar@5.11.0/build/viewer/molstar.css" />
+<script src="https://cdn.jsdelivr.net/npm/molstar@5.11.0/build/viewer/molstar.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
 <link rel="stylesheet" href="explorer.css" />
 <script>
   // Applied before first paint so there's no light->dark flash on load.
@@ -26,6 +29,7 @@
       <a href="#data-panel">Data</a>
       <a href="#ai-panel">Models</a>
       <a href="#sim-panel">Simulation</a>
+      <a href="#network-panel">Network</a>
       <a href="#compare-panel">Compare</a>
       <a href="#history-panel">Log</a>
     </nav>
@@ -136,6 +140,31 @@
     </div>
     <textarea id="sim-input" rows="6" spellcheck="false"></textarea>
     <div id="sim-results" class="results"></div>
+  </section>
+
+  <section id="network-panel" class="panel">
+    <div class="panel-head">
+      <p class="eyebrow">Auto-generated network</p>
+      <h2>Derive a species/reaction graph from any model's own SBML</h2>
+      <p class="hint">Not hand-curated like the repressilator's regulatory ring on the other page —
+        species become nodes and each reaction's reactants&rarr;products become edges, read directly
+        out of whichever SBML backs the selected adapter's real example model. Large models get an
+        honestly-labeled top-N-by-connectivity cut, never a silent one. Click a node with a UniProt
+        annotation to try loading its real AlphaFold structure — most won't have one, which is a real
+        gap in structural coverage, not a bug here.</p>
+    </div>
+    <div class="row">
+      <select id="network-select"></select>
+      <button id="network-build-btn" class="btn btn-primary">Build network</button>
+    </div>
+    <div id="network-status" class="hint"></div>
+    <div class="network-layout">
+      <div id="network-cy" class="network-graph"></div>
+      <div class="network-structure">
+        <p class="hint" id="network-structure-note">Click a species node to try loading its structure.</p>
+        <div id="network-molstar"></div>
+      </div>
+    </div>
   </section>
 
   <section id="compare-panel" class="panel">

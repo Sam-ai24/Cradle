@@ -558,6 +558,29 @@ textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3
 .data-table tbody tr:hover { background: var(--accent-soft); }
 .data-table td.num { font-variant-numeric: tabular-nums; text-align: right; }
 
+.network-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+}
+.network-graph {
+  height: 440px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+.network-structure #network-molstar {
+  position: relative;
+  height: 380px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface);
+}
+@media (max-width: 900px) {
+  .network-layout { grid-template-columns: 1fr; }
+}
+
 .compare-engine-heading {
   margin: 18px 0 8px;
   font-family: var(--font-mono);

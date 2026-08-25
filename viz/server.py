@@ -13,9 +13,12 @@ from __future__ import annotations
 
 import inspect
 import tempfile
+import xml.etree.ElementTree as ET
+import zipfile
 from pathlib import Path
 from typing import Any
 
+import libsbml
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -166,6 +169,164 @@ def sim_run(name: str, req: SimulateRequest) -> dict[str, Any]:
         raise HTTPException(409, str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(400, str(exc)) from exc
+
+
+def _extract_sbml_from_combine_archive(archive_path: str) -> str:
+    """A COMBINE archive is a zip file with a manifest.xml listing its
+    contents by format URI - find the one COMBINE itself calls out as SBML
+    rather than guessing by file extension.
+    """
+    with zipfile.ZipFile(archive_path) as zf:
+        manifest = zf.read("manifest.xml").decode("utf-8")
+        root = ET.fromstring(manifest)
+        for content in root:
+            if "sbml" in content.attrib.get("format", "").lower():
+                location = content.attrib["location"].lstrip("./")
+                return zf.read(location).decode("utf-8")
+    raise ValueError("this COMBINE archive's manifest.xml lists no SBML entry")
+
+
+def _sbml_text_for_model(model: dict[str, Any]) -> str:
+    if "combine_archive" in model:
+        return _extract_sbml_from_combine_archive(model["combine_archive"])
+    if "sbml_path" in model:
+        return Path(model["sbml_path"]).read_text(encoding="utf-8")
+    raise ValueError("this model input has neither combine_archive nor sbml_path - can't derive a network from it")
+
+
+def _species_uniprot_curie(species: Any) -> str | None:
+    """The same technique scripts/export_visualization_data.py uses for the
+    hand-curated repressilator graph, generalized to any species: read its
+    identifiers.org annotation, if it has one pointing at UniProt.
+    """
+    for i in range(species.getNumCVTerms()):
+        cv_term = species.getCVTerm(i)
+        for j in range(cv_term.getNumResources()):
+            uri = cv_term.getResourceURI(j)
+            if "identifiers.org/uniprot/" not in uri:
+                continue
+            return "uniprot:" + uri.split("identifiers.org/uniprot/", 1)[1]
+    return None
+
+
+def _build_network_from_sbml(sbml_text: str, max_species: int = 40, max_reactions: int = 60) -> dict[str, Any]:
+    """A bipartite species/reaction graph read directly out of the model's
+    own SBML - not a hand-curated abstraction like the repressilator's
+    repression ring. Bipartite (species -> reaction -> species) rather
+    than collapsing straight to species-species edges because a lot of
+    real kinetic reactions are pure synthesis (no reactants) or pure
+    degradation (no products); collapsing those to species-species pairs
+    would silently drop them from the graph entirely. Large models
+    (genome-scale FBA has thousands of species) get an honestly-disclosed
+    truncation to the most-connected species, never a silent one.
+    """
+    document = libsbml.readSBMLFromString(sbml_text)
+    model = document.getModel()
+    if model is None:
+        raise ValueError("libsbml could not parse a model out of this SBML document")
+
+    species_ids = [model.getSpecies(i).getId() for i in range(model.getNumSpecies())]
+    reactions = [model.getReaction(i) for i in range(model.getNumReactions())]
+
+    degree: dict[str, int] = {sid: 0 for sid in species_ids}
+    reaction_links: list[tuple[str, str, list[str], list[str]]] = []
+    for reaction in reactions:
+        reactants = [reaction.getReactant(j).getSpecies() for j in range(reaction.getNumReactants())]
+        products = [reaction.getProduct(j).getSpecies() for j in range(reaction.getNumProducts())]
+        reaction_links.append((reaction.getId(), reaction.getName() or reaction.getId(), reactants, products))
+        for species_id in reactants + products:
+            degree[species_id] = degree.get(species_id, 0) + 1
+
+    truncated = len(species_ids) > max_species
+    kept_species = (
+        set(sorted(species_ids, key=lambda sid: degree.get(sid, 0), reverse=True)[:max_species])
+        if truncated
+        else set(species_ids)
+    )
+
+    nodes = []
+    for species_id in species_ids:
+        if species_id not in kept_species:
+            continue
+        species = model.getSpecies(species_id)
+        nodes.append(
+            {
+                "data": {
+                    "id": species_id,
+                    "label": species.getName() or species_id,
+                    "curie": _species_uniprot_curie(species),
+                    "kind": "species",
+                }
+            }
+        )
+
+    touching = []  # (reaction_id, label, kept_reactants, kept_products)
+    for reaction_id, label, reactants, products in reaction_links:
+        kept_reactants = [r for r in reactants if r in kept_species]
+        kept_products = [p for p in products if p in kept_species]
+        if kept_reactants or kept_products:
+            touching.append((reaction_id, label, kept_reactants, kept_products))
+
+    # A genome-scale model's few hundred hub metabolites (ATP, water, ...)
+    # each touch thousands of reactions - capping species alone still left
+    # a genuinely unrenderable/browser-hanging reaction count. Keep the
+    # reactions that connect the *most* kept species (more informative
+    # than an arbitrary cut), same honest-truncation pattern as species.
+    reactions_truncated = len(touching) > max_reactions
+    if reactions_truncated:
+        touching.sort(key=lambda t: len(t[2]) + len(t[3]), reverse=True)
+        touching = touching[:max_reactions]
+
+    edges = []
+    for reaction_id, label, kept_reactants, kept_products in touching:
+        reaction_node_id = f"rxn:{reaction_id}"
+        nodes.append({"data": {"id": reaction_node_id, "label": label, "curie": None, "kind": "reaction"}})
+        for reactant_id in kept_reactants:
+            edges.append({"data": {"source": reactant_id, "target": reaction_node_id, "label": ""}})
+        for product_id in kept_products:
+            edges.append({"data": {"source": reaction_node_id, "target": product_id, "label": ""}})
+
+    return {
+        "elements": {"nodes": nodes, "edges": edges},
+        "n_species_total": len(species_ids),
+        "n_reactions_total": len(reactions),
+        "n_species_shown": len(kept_species),
+        "n_reactions_shown": len(touching),
+        "truncated": truncated or reactions_truncated,
+    }
+
+
+class NetworkRequest(BaseModel):
+    model: dict[str, Any]
+
+
+@app.post("/api/network/build")
+def network_build(req: NetworkRequest) -> dict[str, Any]:
+    """Derive a real Cytoscape-ready graph from any registered model's own
+    SBML - the auto-generated counterpart to the repressilator's hand-
+    curated regulatory network, usable on whatever's actually loaded rather
+    than requiring per-model curation first.
+    """
+    try:
+        sbml_text = _sbml_text_for_model(req.model)
+        return _build_network_from_sbml(sbml_text)
+    except Exception as exc:  # noqa: BLE001 - surface the real parse/shape error
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.get("/api/structure/{accession}")
+def structure_get(accession: str) -> Response:
+    """Proxies a real AlphaFold DB structure through this server (caching
+    it under ~/.cradle/cache via the same `cached_download` genome-scale
+    models use) so the browser never needs a direct cross-origin fetch to
+    alphafold.ebi.ac.uk, which has no CORS headers.
+    """
+    record = resolve_all(f"uniprot:{accession}").get("alphafold-db")
+    pdb_url = (record or {}).get("data", {}).get("pdb_url") if record and "error" not in record else None
+    if not pdb_url:
+        raise HTTPException(404, f"No AlphaFold DB structure available for uniprot:{accession}")
+    local_path = cached_download(pdb_url)
+    return Response(content=local_path.read_text(encoding="utf-8"), media_type="text/plain")
 
 
 class NoCacheStaticFiles(StaticFiles):
