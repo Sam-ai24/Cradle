@@ -201,14 +201,25 @@ def _species_uniprot_curie(species: Any) -> str | None:
     """The same technique scripts/export_visualization_data.py uses for the
     hand-curated repressilator graph, generalized to any species: read its
     identifiers.org annotation, if it has one pointing at UniProt.
+
+    identifiers.org resolves both a legacy slash form
+    (`identifiers.org/uniprot/P03023`, what the repressilator's own model
+    uses) and the newer recommended compact-identifier colon form
+    (`identifiers.org/uniprot:P03023`, what `cradle.substrate.annotate`
+    writes) - a real model found in the wild could use either, so this
+    accepts both rather than the one this repo happened to be tested
+    against first.
     """
     for i in range(species.getNumCVTerms()):
         cv_term = species.getCVTerm(i)
         for j in range(cv_term.getNumResources()):
             uri = cv_term.getResourceURI(j)
-            if "identifiers.org/uniprot/" not in uri:
+            if "identifiers.org/" not in uri:
                 continue
-            return "uniprot:" + uri.split("identifiers.org/uniprot/", 1)[1]
+            tail = uri.split("identifiers.org/", 1)[1]
+            for prefix in ("uniprot/", "uniprot:"):
+                if tail.lower().startswith(prefix):
+                    return "uniprot:" + tail[len(prefix) :]
     return None
 
 
