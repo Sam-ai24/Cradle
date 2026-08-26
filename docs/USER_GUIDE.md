@@ -16,20 +16,63 @@ pip install -e ".[dev,demo,lab,pipelines]"
 Individual capabilities below each need their own plugin installed too (`pip install -e
 plugins/<name>`) — each section says which.
 
-## 1. See it in a browser — the repressilator explorer
+## 1. See it in a browser — the Explorer
 
-The most immediately visual thing in the repo: a real gene-regulatory network you can click
-through to real protein structures, plus two simulation engines compared live on a shared
-time-slider.
+Unlike everything else in this doc, the Explorer isn't a fixed script — it's a real FastAPI
+app (`viz/server.py`) sitting directly on top of the plugin registry, so it shows whatever
+you've actually pip-installed, nothing hardcoded. Install a representative handful of
+plugins to get a real first tour (install more any time — `pip install -e plugins/<name>`
+only updates site-packages metadata, not any file under `viz/`/`src/`/`plugins/`, so the
+running server's own discovery cache won't see it until you restart the script below):
 
 ```bash
-pip install -e plugins/tellurium_sim -e plugins/copasi_sim -e plugins/alphafold_data
-python scripts/export_visualization_data.py      # one-time, ~30s
-python -m http.server 8743 --directory viz
+pip install -e ".[viz]"
+pip install -e plugins/uniprot_data -e plugins/alphafold_data -e plugins/tellurium_sim \
+  -e plugins/copasi_sim -e plugins/cobrapy_fba -e plugins/esmc_embedding \
+  -e plugins/grn_inference
 ```
 
-Open `http://localhost:8743`. Click a protein node (LacI, TetR, or cI) to load its real
-AlphaFold structure; drag the time-slider and watch both engines' trajectories move in sync.
+Start the backend (Windows; on macOS/Linux drop the `.ps1` wrapper and run the `uvicorn`
+command it contains directly — see the comment at the top of `viz/server.py`):
+
+```powershell
+powershell -File scripts/run_explorer.ps1
+```
+
+This watches `viz/`, `src/`, and `plugins/` for `*.py` changes and restarts the process
+automatically (deliberately not `uvicorn --reload`, whose own Windows reloader was found to
+silently hang mid-restart during development — see the script's comments). Static
+`viz/*.html|css|js` need no restart at all; they're served fresh on every request and just
+need a browser refresh.
+
+Open **`http://localhost:8743/explorer.html`** — the general-purpose tour:
+
+- **Registry**: every connector/adapter/model actually installed right now, live from
+  `GET /api/plugins`.
+- **Data / Models / Simulation**: search real biological data, run a real AI model, run a
+  real simulation — each panel loads a genuine conformance-fixture example, not a
+  hand-invented one, and "Not configured" (e.g. no API key, no trained checkpoint yet) is
+  shown as an honest yellow state, not an error.
+- **Network**: derives a real species/reaction graph directly from any selected adapter's
+  own SBML — no curation required, unlike the page below. Click a species node with a
+  UniProt annotation to try loading its real AlphaFold structure.
+- **Compare**: groups simulation adapters by `input_mode` and runs every one that shares a
+  group against the same real model, so you can see independent engines agree (or not).
+- **Log**: every query this session, kept and re-runnable, instead of vanishing the moment
+  you run the next one.
+
+The "Try one" buttons at the top run a real end-to-end example in one click if you'd rather
+not think about CURIEs or input shapes yet.
+
+Separately, **`http://localhost:8743/index.html`** is the original Phase 10 scale-router,
+scoped to one model with real hand curation: a repressilator regulatory-network view linked
+to real AlphaFold structures of its three proteins, plus a live (not pre-baked) comparison
+across every registered `combine_archive` engine. It needs one extra one-time step for the
+curated topology + downloaded structures:
+
+```bash
+python scripts/export_visualization_data.py      # one-time, ~30s
+```
 
 ## 2. Run the full "fit → simulate → report" workflow
 
@@ -141,11 +184,13 @@ the same way — nothing about the adapter is specific to iML1515.
 
 ## 6. Predict a gene knockout's effect (perturbation contract)
 
-**Status: training in progress, not yet usable.** `plugins/perturbation_gears/` wraps a real
-GNN (GEARS) that predicts a cell's transcriptional response to a gene knockout, trained on
-real Perturb-seq data. Training takes hours on CPU and is genuinely still running as of this
-writing — see `docs/HANDOFF.md` for the current state. Until a trained checkpoint exists,
-`predict()` raises a clear, actionable error rather than fake output:
+**Status: not yet trained.** `plugins/perturbation_gears/` wraps a real GNN (GEARS) that
+predicts a cell's transcriptional response to a gene knockout, trained on real Perturb-seq
+data. A training attempt was interrupted with no checkpoint saved (training takes hours on
+CPU); the per-epoch checkpointing in `scripts/perturbation_gears/train_and_evaluate.py`
+means a restart won't lose more than one epoch's progress next time. See `docs/HANDOFF.md`
+for the current state. Until a trained checkpoint exists, `predict()` raises a clear,
+actionable error rather than fake output:
 
 ```bash
 pip install -e plugins/perturbation_gears

@@ -44,6 +44,12 @@ lab = [
 # import, and past that its input-staging step needs a Windows privilege a
 # normal account doesn't hold) — so it's deliberately not listed here.
 pipelines = ["snakemake>=8.0"]
+# Phase 10/12: the Explorer backend (viz/server.py) - a real FastAPI app
+# over the plugin registry, not a static-file demo, so it needs an actual
+# ASGI server. `watchfiles` here is its CLI (scripts/run_explorer.ps1),
+# used instead of `uvicorn --reload`, whose Windows multiprocessing
+# reloader was confirmed to get stuck mid-restart (see git history).
+viz = ["fastapi>=0.110", "uvicorn>=0.29", "watchfiles>=0.21"]
 
 [project.scripts]
 cradle-conformance = "cradle.conformance.cli:main"
