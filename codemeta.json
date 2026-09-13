@@ -4,7 +4,7 @@
   "name": "Cradle",
   "description": "A modular cell-simulation platform in which data sources, simulation engines, and AI/foundation models are independently versioned, swappable components, designed for scientific traceability (MIRIAM annotation, MIASE-compliant provenance) rather than a fixed, monolithic model.",
   "license": "https://spdx.org/licenses/Apache-2.0",
-  "codeRepository": "TODO: add repository URL once hosted",
+  "codeRepository": "https://github.com/Sam-ai24/Cradle",
   "programmingLanguage": "Python",
   "runtimePlatform": "Python 3.11+",
   "version": "0.0.0-phase0",
@@ -13,9 +13,9 @@
   "author": [
     {
       "@type": "Person",
-      "givenName": "TODO",
-      "familyName": "TODO — fill in your name here",
-      "email": "b.davtalab@eplanetbrokers.com"
+      "givenName": "Saman",
+      "familyName": "Bahadoran",
+      "email": "bahadoransaman96@gmail.com"
     }
   ]
 }

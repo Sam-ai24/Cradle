@@ -1,18 +1,20 @@
 # Phase 11: local/cloud container packaging.
 #
-# NOT locally built or run: this machine has no Docker Desktop and no WSL2
-# (confirmed directly - `docker`/`wsl` are absent, see docs/ROADMAP.md
-# Phase 11), so this file is written but unverified by an actual build,
-# unlike everything else in this phase. Lower-risk than it sounds: every
-# compiled dependency Cradle needs (antimony, python-libsbml/-libsedml/
-# -libcombine, h5py, basico) was confirmed via `pip download
-# --platform manylinux2014_x86_64` to publish real Linux wheels for
-# CPython 3.11 - so this image shouldn't need a compiler toolchain at all.
-# Build/run it on a machine with Docker (or in CI) to actually confirm.
+# Originally written on Windows without Docker (Phase 11). First actual
+# build attempted 2026-09-13 on macOS with Docker 29. See also
+# Dockerfile.flagship — a thinner image that only needs what the E. coli
+# essentiality flagship uses, verified if the full plugin set fails to
+# build (Geneformer/ESM-C weights are not required for pytest of core).
 #
 #   docker build -t cradle .
 #   docker run --rm -it cradle pytest -q
-FROM python:3.11-slim
+# antimony>=3.1 has no linux/arm64 wheel (confirmed 2026-09-13).
+FROM --platform=linux/amd64 python:3.11-slim
+
+# python-libsbml / libcombine wheels need libexpat at runtime
+# (confirmed 2026-09-13: ImportError: libexpat.so.1 on python:3.11-slim).
+RUN apt-get update && apt-get install -y --no-install-recommends libexpat1 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /cradle
 

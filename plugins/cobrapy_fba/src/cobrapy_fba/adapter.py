@@ -56,3 +56,36 @@ class CobraFbaSimulationAdapter:
             "status": payload["status"],
             "objective_value": payload["objective_value"],
         }
+
+    def _run_worker(self, *args: str, timeout: float | None = None) -> dict[str, Any]:
+        completed = subprocess.run(
+            [sys.executable, "-m", "cobrapy_fba.worker", *args],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        if completed.returncode != 0:
+            raise CobraFbaAdapterError(
+                f"cobrapy_fba.worker failed (exit {completed.returncode}): {completed.stderr}"
+            )
+        if not completed.stdout.strip():
+            raise CobraFbaAdapterError(
+                f"cobrapy_fba.worker printed no JSON (stderr: {completed.stderr})"
+            )
+        return json.loads(completed.stdout)
+
+    def gene_table(self, sbml_path: str) -> dict[str, Any]:
+        """Dump every gene id/name/annotation from `sbml_path` in one
+        subprocess — used to join FBA genes onto UniProt CURIEs and
+        STRING preferred names without importing cobra in-process.
+        """
+        return self._run_worker("--gene-table", sbml_path, timeout=120)
+
+    def single_gene_deletion(self, sbml_path: str) -> dict[str, Any]:
+        """Genome-wide single-gene deletion in one subprocess: the model
+        is loaded once and `cobra.flux_analysis.single_gene_deletion` runs
+        with `processes=1`. Calling `run(..., gene_knockouts=[id])` once
+        per gene would reload iML1515 ~1,500 times; this is the same
+        science without that cost.
+        """
+        return self._run_worker("--single-gene-deletion", sbml_path, timeout=600)

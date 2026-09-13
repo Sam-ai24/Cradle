@@ -8,8 +8,8 @@ for how this compares to the field, `docs/LANDSCAPE.md`.
 **One-time setup**, from the repo root:
 
 ```bash
-python -m venv .venv
-source .venv/Scripts/activate      # Git Bash on Windows; .venv\Scripts\activate.bat on cmd
+python3.11 -m venv .venv
+source .venv/bin/activate          # macOS/Linux; on Windows: .venv\Scripts\activate
 pip install -e ".[dev,demo,lab,pipelines]"
 ```
 
@@ -95,6 +95,21 @@ python scripts/lab_pipeline/prepare_example_inputs.py
 snakemake -s workflows/Snakefile --cores 1
 cat workflows/example_output/benchmark.json      # real cross-engine agreement number
 ```
+
+## 2b. E. coli essentiality flagship (FBA × PEC × STRING)
+
+One question, three layers, on iML1515. Uses only `cradle.lab`. GEARS/DepMap are
+the wrong organism and are not used.
+
+```bash
+pip install -e ".[dev,lab]" -e plugins/cobrapy_fba
+python scripts/ecoli_essentiality/run_flagship.py
+jupyter lab notebooks/ecoli_essentiality.ipynb
+```
+
+Writes `models/ecoli_flagship/{results.json,REPORT.md,essentiality.png}`. The
+checked-in notebook is already executed; re-running the script re-solves 1,516
+LPs (~30–60s) and re-fetches PEC + STRING (cached after the first time).
 
 ## 3. Query real biological data — one interface, many sources
 

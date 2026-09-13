@@ -23,6 +23,24 @@ system keeps absorbing better science and better models instead of being rewritt
   engines, AI/foundation models, and scientific standards, each with license and maintenance
   status checked as of August 2026.
 
+## Flagship result (2026-09-13)
+
+Same *E. coli* genes, three independent layers — not three disconnected demos:
+
+| Layer | Source | Result vs PEC essentiality |
+|---|---|---|
+| Mechanistic perturbation | iML1515 FBA knockouts (glucose minimal) | MCC **0.57**, AUROC **0.87**, accuracy 0.92 |
+| Literature | PEC `PECData.dat` (Keio-class knockout viability) | 119 essential / 1,515 labeled genes in the model |
+| Network baseline | STRING v12 degree, taxon 511145 | MCC **0.11**, AUROC **0.63** |
+
+FBA beats the hub baseline. `folA` is the documented isozyme rescue (PEC-essential, FBA-nonessential because the GPR is `folA or folM`). GEARS and DepMap are **not** this third layer — they are human datasets. Artifacts: [`models/ecoli_flagship/`](models/ecoli_flagship/), [`notebooks/ecoli_essentiality.ipynb`](notebooks/ecoli_essentiality.ipynb).
+
+```bash
+python3.11 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev,lab]" -e plugins/cobrapy_fba
+python scripts/ecoli_essentiality/run_flagship.py
+```
+
 ## Core design rule
 
 No layer ever calls another engine/model/database directly. Every cross-layer call goes

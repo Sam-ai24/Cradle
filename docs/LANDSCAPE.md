@@ -165,8 +165,11 @@ In roughly the order that would matter most:
    2026-08-21**: the unmodified COBRApy adapter now runs iML1515 (2,712 reactions, 1,516
    genes), correctly predicting the real published growth rate and correctly classifying
    real essential/non-essential gene knockouts (see `docs/ROADMAP.md`'s Phase 2 addendum).
-   Still open: infer a GRN from a real single-cell dataset instead of an 8-cell synthetic
-   one; run MD on a real small-molecule/peptide system instead of a bead-spring toy chain.
+   **Genome-wide essentiality comparison, 2026-09-13**: all 1,516 iML1515 genes scored by
+   FBA, PEC literature, and STRING degree — FBA MCC 0.57 / AUROC 0.87 vs STRING MCC 0.11 /
+   AUROC 0.63; `folA` kept as a real isozyme disagreement. Still open: infer a GRN from a
+   real single-cell dataset instead of an 8-cell synthetic one; run MD on a real
+   small-molecule/peptide system instead of a bead-spring toy chain.
 3. **Independent peer review.** A methods paper (architecture + validation results) submitted
    somewhere real — even a workshop paper or a bioRxiv preprint — moves this from "internally
    validated" to "externally checked." This is the single biggest lever for "scientific

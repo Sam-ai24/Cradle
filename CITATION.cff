@@ -10,8 +10,8 @@ type: software
 license: Apache-2.0
 version: "0.0.0-phase0"
 date-released: "2026-08-20"
-repository-code: "TODO: add repository URL once hosted"
+repository-code: "https://github.com/Sam-ai24/Cradle"
 authors:
-  - family-names: "TODO"
-    given-names: "TODO — fill in your name here"
-    email: "b.davtalab@eplanetbrokers.com"
+  - family-names: "Bahadoran"
+    given-names: "Saman"
+    email: "bahadoransaman96@gmail.com"

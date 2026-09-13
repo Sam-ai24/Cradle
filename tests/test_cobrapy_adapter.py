@@ -35,3 +35,27 @@ def test_cobrapy_adapter_solves_the_toy_network_correctly(tmp_path):
     assert result["trajectories"]["uptake"][0] == pytest.approx(
         EXPECTED_OPTIMAL_SECRETION_FLUX
     )
+
+
+def test_cobrapy_gene_table_and_single_gene_deletion_on_the_toy_network(tmp_path):
+    """The flagship path (`--gene-table` / `--single-gene-deletion`) has to
+    keep working on the tiny network, not only on iML1515 — otherwise a
+    JSON-shape bug in the new worker commands would only show up after a
+    multi-minute genome-scale run.
+    """
+    sbml_path = build_reference_fba_sbml(str(tmp_path))
+    adapter = _cobrapy_adapter()
+
+    table = adapter.gene_table(sbml_path)
+    # The Phase 2 toy network has no GPR/genes — that's a real property of
+    # the fixture, not a worker bug. The new commands still have to return
+    # a well-formed payload and the same optimum as `run()`.
+    assert table["n_genes"] == len(table["genes"])
+    gene_ids = {gene["id"] for gene in table["genes"]}
+
+    deletions = adapter.single_gene_deletion(sbml_path)
+    assert deletions["baseline_growth"] == pytest.approx(EXPECTED_OPTIMAL_SECRETION_FLUX)
+    assert set(deletions["genes"]) == gene_ids
+    for knockout in deletions["genes"].values():
+        assert "growth" in knockout
+        assert "status" in knockout

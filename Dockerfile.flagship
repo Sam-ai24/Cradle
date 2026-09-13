@@ -1,0 +1,32 @@
+# Thinner image for the E. coli essentiality flagship + cobrapy tests.
+# Does not install Geneformer/ESM-C/GEARS weights.
+#
+# antimony>=3.1 publishes manylinux x86_64 wheels, not linux/arm64 — a
+# native Apple-Silicon `docker build` fails with "No matching distribution
+# found for antimony>=3.1" (only 2.14.0 is visible). Pin linux/amd64.
+#
+#   docker build --platform linux/amd64 -f Dockerfile.flagship -t cradle-flagship .
+#   docker run --rm cradle-flagship
+FROM --platform=linux/amd64 python:3.11-slim
+
+# python-libsbml / libcombine wheels need libexpat at runtime
+# (confirmed 2026-09-13: ImportError: libexpat.so.1 on python:3.11-slim).
+RUN apt-get update && apt-get install -y --no-install-recommends libexpat1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /cradle
+
+COPY pyproject.toml ./
+COPY src ./src
+COPY plugins/cobrapy_fba ./plugins/cobrapy_fba
+COPY plugins/hello_data ./plugins/hello_data
+COPY plugins/hello_sim ./plugins/hello_sim
+COPY plugins/hello_ai ./plugins/hello_ai
+COPY tests ./tests
+COPY models/ecoli_flagship ./models/ecoli_flagship
+
+RUN pip install --no-cache-dir -e ".[dev,lab]" \
+    -e plugins/cobrapy_fba \
+    -e plugins/hello_data -e plugins/hello_sim -e plugins/hello_ai
+
+CMD ["pytest", "-q", "tests/test_ecoli_essentiality.py", "tests/test_cobrapy_adapter.py"]

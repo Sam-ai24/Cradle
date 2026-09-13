@@ -1,6 +1,8 @@
 # Cradle — Session Handoff
 
-**Last updated:** 2026-08-27 (Phases 0-10 were built 2026-08-20 in one continuous run;
+**Last updated:** 2026-09-13 (E. coli essentiality flagship: iML1515 FBA × PEC × STRING
+on a Mac, plus citation metadata and a first Docker build). Previous note:
+**2026-08-27** (Phases 0-10 were built 2026-08-20 in one continuous run;
 Phases 11 and 12, plus a genome-scale validation pass and a strategic landscape review, were
 all built 2026-08-21; a further session spanning 2026-08-25 to 2026-08-27 built the GEARS
 perturbation adapter, then — after strong user feedback that the Phase 10 visualization was
@@ -25,8 +27,9 @@ AI features (LLM orchestration) are fully optional and degrade gracefully with n
 
 ## Standing constraints (do not violate these without the user explicitly changing them)
 
-- **Local-only.** No Claude Artifacts for Cradle. All deliverables — docs, data, viz pages —
-  are files inside this repo. (Saved to memory as `cradle-project-local-only.md`.)
+- **No Claude Artifacts.** All deliverables — docs, data, viz pages — are files inside this
+  repo. Public GitHub (`https://github.com/Sam-ai24/Cradle`) was an explicit 2026-09-13
+  week-1 decision; that does not mean shipping results via Claude Artifacts.
 - **No fabricated results.** Every claim is checked against a real API, library, or dataset
   before being written down. Genuine blockers (missing package, no wheel, GPL isolation
   requirement, no discoverable REST API, native crash) are documented as blockers, not
@@ -37,6 +40,28 @@ AI features (LLM orchestration) are fully optional and degrade gracefully with n
 - **AI/API keys are opt-in.** Nothing in Cradle requires `ANTHROPIC_API_KEY` /
   `OPENROUTER_API_KEY` / `CRADLE_BIOGRID_API_KEY` to install or for non-AI features to work;
   their absence must always produce a clear `NotConfiguredError` skip, never a crash.
+
+## Current state (2026-09-13)
+
+Ported to macOS (`/Users/sam/Desktop/Projects/Cradle`, Python 3.11 venv). Flagship
+question executed for real:
+
+- iML1515 FBA single-gene deletion (1,516 genes, WT 0.877/h) vs PEC essentiality vs
+  STRING v12 degree (taxon 511145).
+- FBA vs PEC: MCC 0.57, AUROC 0.87, accuracy 0.92 (TP 93 / FP 102 / TN 1294 / FN 26).
+- STRING hub baseline vs PEC: MCC 0.11, AUROC 0.63 — FBA wins.
+- `folA` is PEC-essential and FBA-nonessential (isozyme `folM`), as previously documented.
+- UniProt KW-0256 returned **zero** reviewed E. coli K-12 entries (live check); PEC
+  `PECData.dat` is the literature layer instead.
+- GEARS/DepMap were **not** used: wrong organism (human).
+- cobra `single_gene_deletion` in 0.29+ stores gene ids in an `ids` column with a
+  RangeIndex — worker was extended to read that, after a first run silently joined
+  nothing (gene ids `"0"`, `"1"`, …).
+- Citation: `CITATION.cff` / `codemeta.json` filled (Saman Bahadoran).
+- Artifacts: `models/ecoli_flagship/`, `notebooks/ecoli_essentiality.ipynb`.
+
+GEARS training is still untrained and still the wrong tool for this flagship; start it
+only as a separate human-perturbation track, not as E. coli essentiality.
 
 ## Current state (2026-08-27)
 
